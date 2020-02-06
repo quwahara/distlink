@@ -73,12 +73,12 @@
     }
 
     const distlink = function distlink(object) {
-        return loadObjectProp(null, null, object);
+        return loadObjectLink(null, null, object);
     }
 
     const _ridDic = {};
 
-    function loadObjectProp(owner, nameInOwner, object) {
+    function loadObjectLink(owner, nameInOwner, object) {
         if (!isObject(object)) {
             throw Error("The argument type was not an object.");
         }
@@ -88,13 +88,13 @@
         }
 
         const _rid = defineRidProp(object);
-        const prop = new ObjectProp(owner, nameInOwner, object);
+        const prop = new ObjectLink(owner, nameInOwner, object);
         _ridDic[_rid] = prop;
 
         return prop;
     }
 
-    function loadArrayProp(owner, nameInOwner, array) {
+    function loadArrayLink(owner, nameInOwner, array) {
         if (!isArray(array)) {
             throw Error("The argument type was not an array.");
         }
@@ -104,7 +104,7 @@
         }
 
         const _rid = defineRidProp(array);
-        const prop = new ArrayProp(owner, nameInOwner);
+        const prop = new ArrayLink(owner, nameInOwner);
         _ridDic[_rid] = prop;
 
         return prop;
@@ -134,7 +134,7 @@
         return "_" + (Math.floor(Math.random() * (RID_MAX - RID_MIN + 1)) + RID_MIN).toString(10);
     }
 
-    const ObjectProp = function ObjectProp(owner, nameInOwner, object) {
+    const ObjectLink = function ObjectLink(owner, nameInOwner, object) {
         this._owner = owner;
         this._nameInOwner = nameInOwner;
         this._object = object;
@@ -155,13 +155,13 @@
             const value = object[key];
             let prop;
             if (isNullOrUndefined(value) || isPrimitive(value)) {
-                prop = new PrimitiveProp(this, key);
+                prop = new PrimitiveLink(this, key);
             }
             else if (isObject(value)) {
-                prop = loadObjectProp(object, key, value);
+                prop = loadObjectLink(object, key, value);
             }
             else if (isArray(value)) {
-                prop = loadArrayProp(this, key, value);
+                prop = loadArrayLink(this, key, value);
             }
             else {
                 throw Error("Unsupported type");
@@ -206,7 +206,7 @@
         }
     };
 
-    ObjectProp.prototype.select = function (queryOrElement) {
+    ObjectLink.prototype.select = function (queryOrElement) {
 
         if (isString(queryOrElement)) {
             this._selected = document.querySelector(queryOrElement);
@@ -221,7 +221,7 @@
         return this;
     };
 
-    ObjectProp.prototype._propagate = function (source, value) {
+    ObjectLink.prototype._propagate = function (source, value) {
 
         if (source === this) {
             return;
@@ -242,7 +242,7 @@
         }
     }
 
-    const ArrayProp = function ArrayProp(objectProp, nameInObject) {
+    const ArrayLink = function ArrayLink(objectProp, nameInObject) {
         this._objectProp = objectProp;
         this._nameInObject = nameInObject;
         this._value = objectProp._object[nameInObject];
@@ -277,7 +277,7 @@
 
     }
 
-    ArrayProp.prototype.select = function (queryOrElement) {
+    ArrayLink.prototype.select = function (queryOrElement) {
 
         if (isString(queryOrElement)) {
             this._selected = document.querySelector(queryOrElement);
@@ -292,7 +292,7 @@
         return this;
     };
 
-    ArrayProp.prototype.each = function (callback) {
+    ArrayLink.prototype.each = function (callback) {
 
         if (!isFunction(callback)) {
             throw Error("The callback was not a function.");
@@ -313,7 +313,7 @@
         return this._objectProp;
     };
 
-    ArrayProp.prototype._propagate = function (source, value) {
+    ArrayLink.prototype._propagate = function (source, value) {
 
         if (source !== this) {
             this._value = value;
@@ -353,7 +353,7 @@
 
     };
 
-    const PrimitiveProp = function PrimitiveProp(objectProp, nameInObject) {
+    const PrimitiveLink = function PrimitiveLink(objectProp, nameInObject) {
         this._objectProp = objectProp;
         this._nameInObject = nameInObject;
         this._value = objectProp._object[nameInObject];
@@ -423,7 +423,7 @@
         });
     };
 
-    PrimitiveProp.prototype._assertSelected = function () {
+    PrimitiveLink.prototype._assertSelected = function () {
 
         const selected = this._selected;
 
@@ -434,7 +434,7 @@
         return selected;
     };
 
-    PrimitiveProp.prototype.select = function (queryOrElement) {
+    PrimitiveLink.prototype.select = function (queryOrElement) {
 
         if (isString(queryOrElement)) {
             let scopeNode = this._objectProp._selected || document;
@@ -450,7 +450,7 @@
         return this;
     };
 
-    PrimitiveProp.prototype.withValue = function (eventType) {
+    PrimitiveLink.prototype.withValue = function (eventType) {
 
         if (isNullOrUndefined(eventType)) {
             eventType = "change";
@@ -498,7 +498,7 @@
         return this._objectProp;
     }
 
-    PrimitiveProp.prototype.toText = function () {
+    PrimitiveLink.prototype.toText = function () {
 
         const element = this._assertSelected();
 
@@ -515,15 +515,15 @@
         return this._objectProp;
     }
 
-    PrimitiveProp.prototype.toSrc = function () {
+    PrimitiveLink.prototype.toSrc = function () {
         return this.toAttr("src");
     }
 
-    PrimitiveProp.prototype.toHref = function () {
+    PrimitiveLink.prototype.toHref = function () {
         return this.toAttr("href");
     }
 
-    PrimitiveProp.prototype.toAttr = function (attrName) {
+    PrimitiveLink.prototype.toAttr = function (attrName) {
 
         const element = this._assertSelected();
 
@@ -549,7 +549,7 @@
         return this._objectProp;
     };
 
-    PrimitiveProp.prototype.toClass = function () {
+    PrimitiveLink.prototype.toClass = function () {
 
         const element = this._assertSelected();
 
@@ -568,15 +568,15 @@
         return this._objectProp;
     };
 
-    PrimitiveProp.prototype.turnClassOn = function (className) {
+    PrimitiveLink.prototype.turnClassOn = function (className) {
         return this.turnClass(className, true);
     }
 
-    PrimitiveProp.prototype.turnClassOff = function (className) {
+    PrimitiveLink.prototype.turnClassOff = function (className) {
         return this.turnClass(className, false);
     }
 
-    PrimitiveProp.prototype.turnClass = function (className, onOrOff) {
+    PrimitiveLink.prototype.turnClass = function (className, onOrOff) {
 
         const element = this._assertSelected();
 
@@ -610,7 +610,7 @@
         return this._objectProp;
     };
 
-    PrimitiveProp.prototype.selectRule = function (hrefPred, ruleSelectorPred) {
+    PrimitiveLink.prototype.selectRule = function (hrefPred, ruleSelectorPred) {
         const rules = [];
         for (let i = 0; i < document.styleSheets.length; ++i) {
             const sheet = document.styleSheets[i];
@@ -632,7 +632,7 @@
         return this;
     };
 
-    PrimitiveProp.prototype.toStyleOf = function (styleName) {
+    PrimitiveLink.prototype.toStyleOf = function (styleName) {
 
         const rules = this._assertRulesAreSelected();
         const rns = this._toStyleOfRuleAndStyleNames;
@@ -666,7 +666,7 @@
         return this._objectProp;
     }
 
-    PrimitiveProp.prototype._assertRulesAreSelected = function () {
+    PrimitiveLink.prototype._assertRulesAreSelected = function () {
 
         const rules = this._rules;
 
@@ -680,7 +680,7 @@
     /**
      * It propergates value to among the inputs and related object property.
      */
-    PrimitiveProp.prototype._propagate = function (source, value) {
+    PrimitiveLink.prototype._propagate = function (source, value) {
 
         const previousValue = this._previousValue;
 
