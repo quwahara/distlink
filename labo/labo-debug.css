@@ -1,0 +1,21 @@
+/*
+  宣言の順序
+  関連するプロパティは下記の順序でグルーピングすること。
+
+  1. Positioning（位置関係）
+  2. Box model（ボックスモデル）
+  3. Typographic（フォント関係）
+  4. Visual（見た目）
+
+  refs http://kia-king.com/code-guide/#css-syntax
+ */
+
+.row.debug {
+    /* debug: show off borders */
+    border: 1px solid #6ca;
+}
+
+[class*="col-"].debug {
+    /* debug: show off borders */
+    border: 1px solid #6ac;
+}

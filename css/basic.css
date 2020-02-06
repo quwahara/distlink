@@ -1,0 +1,388 @@
+/*
+  宣言の順序
+  関連するプロパティは下記の順序でグルーピングすること。
+
+  1. Positioning（位置関係）
+  2. Box model（ボックスモデル）
+  3. Typographic（フォント関係）
+  4. Visual（見た目）
+
+  refs http://kia-king.com/code-guide/#css-syntax
+ */
+
+/*
+ * # Utility
+ ******************************************************************************/
+
+.pn14 {
+    padding-top: 14px;
+}
+
+.pw14 {
+    padding-left: 14px;
+}
+
+.pnw14 {
+    padding-left: 14px;
+    padding-top: 14px;
+}
+
+.pw14 {
+    padding-left: 14px;
+}
+
+.pse14 {
+    padding-right: 14px;
+    padding-bottom: 14px;
+}
+
+.pnews6 {
+    padding-right: 6px;
+    padding-left: 6px;
+    padding-top: 6px;
+    padding-bottom: 6px;
+}
+
+.center-max320 {
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+    max-width: 320px;
+}
+
+.ib {
+    display: inline-block;
+}
+
+.left {
+    text-align: left;
+}
+
+.center {
+    text-align: center;
+}
+
+.right {
+    text-align: right;
+}
+
+.border1 {
+    border: solid 1px gray;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html, button, input[type='checkbox'], input, select, textarea {
+    font-family: 'Hiragino Kaku Gothic ProN', 'ヒラギノ角ゴ ProN W3', Meiryo, メイリオ, Osaka, 'MS PGothic', arial, helvetica, sans-serif;
+    font-size: 14px;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+}
+
+label, .label {
+    display: block;
+}
+
+input[type='text'], input[type='password'], select, textarea {
+    width: 100%;
+}
+
+button, input[type="button"], input[type="reset"], input[type="submit"] {
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+    outline: none;
+    padding: 0;
+    appearance: none;
+}
+
+button, input, select, .checkbox-caption, .radio-caption {
+    height: 2.4em;
+}
+
+textarea {
+    min-height: 2.4em;
+}
+
+input[type='checkbox'] {
+    margin-right: 1.0em;
+}
+
+input[type='checkbox']+span {
+    display: inline-block;
+    vertical-align: text-bottom;
+    height: 2.4em;
+}
+
+input[type='radio'] {
+    margin-right: 1.0em;
+}
+
+input[type='radio']+span {
+    display: inline-block;
+    vertical-align: text-bottom;
+    height: 2.4em;
+}
+
+button, input[type="button"], input[type="reset"], input[type="submit"], input[type="text"], input[type="password"], select, textarea {
+    padding: 0.5em;
+}
+
+button, input[type="button"], input[type="reset"], input[type="submit"] {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+button, input[type="button"], input[type="reset"], input[type="submit"], input[type="text"], input[type="password"], select, textarea {
+    border: solid 1px #999;
+}
+
+button, input[type="button"], input[type="reset"], input[type="submit"] {
+    border: solid 1px #999;
+    background-color: #ccc;
+}
+
+/* Table */
+
+table {
+    border-collapse: collapse;
+}
+
+th {
+    background-color: gray;
+}
+
+tr:nth-child(even) {
+    background-color: lightgray;
+}
+
+/*
+ * # Layouts
+ ******************************************************************************/
+
+.global {
+    min-height: 100vh;
+}
+
+.prime {
+    display: inline-block;
+    width: 100%;
+    min-height: calc(100vh - 5px);
+}
+
+.contents {
+    width: 100%;
+    min-height: 100%;
+    /* padding-left: 1rem; */
+    display: inline-block;
+}
+
+/* 
+ * Grid
+ *
+ * ## Experimental concept
+ * For simpleness, we don't put margin and padding to .row and .col.
+ * Because we don't have to care about duplications of margin and padding 
+ * when we put row and col under the row and col recursively.
+ * We will prepare classes that aim at the margin and padding.
+ *
+ * ## 実験的方針
+ * .row と .col では簡単のため margin と padding は行わない
+ * .row や .col で入れ子を作ったとき、margin や padding の重複を考慮しなくてもよくするため
+ * margin や padding はそれ用の class を用意する
+ */
+
+.row {
+    display: block;
+    width: 100%;
+    min-height: 1rem;
+    /* debug: show off borders */
+    /* border: 1px solid #6ca; */
+}
+
+.row::after {
+    content: "";
+    clear: both;
+    display: table;
+}
+
+[class*="col-"] {
+    /* 
+     * Set `float: left` to shrink the space between element and element.
+     * `display: inline-block` makes space between element and element
+     * by line-break and/or space.
+     *
+     * Element と Element の間を詰めるには float: left を指定する。
+     * display: inline-block だと改行やspace の分、
+     * Element と Element の間に余白ができてしまう
+     */
+    display: block;
+    float: left;
+    width: 100%;
+    min-height: 1rem;
+}
+
+.w100pc {
+    width: 100%;
+}
+
+/* viewport-width >= 768px: prime width = 768px
+ **************************************************************************/
+
+@media only screen and (min-width: 320px) {
+    .col-sm-1 {
+        width: 8.33%;
+    }
+    .col-sm-2 {
+        width: 16.66%;
+    }
+    .col-sm-3 {
+        width: 25%;
+    }
+    .col-sm-4 {
+        width: 33.33%;
+    }
+    .col-sm-5 {
+        width: 41.66%;
+    }
+    .col-sm-6 {
+        width: 50%;
+    }
+    .col-sm-7 {
+        width: 58.33%;
+    }
+    .col-sm-8 {
+        width: 66.66%;
+    }
+    .col-sm-9 {
+        width: 75%;
+    }
+    .col-sm-10 {
+        width: 83.33%;
+    }
+    .col-sm-11 {
+        width: 91.66%;
+    }
+    .col-sm-12 {
+        width: 100%;
+    }
+}
+
+/* viewport-width >= 768px: prime width = 768px
+ **************************************************************************/
+
+@media only screen and (min-width: 768px) {
+    .prime {
+        margin-left: calc((100% - 768px) / 2);
+        max-width: 768px;
+    }
+    /*
+     * Grid for desktop
+     */
+    .col-1 {
+        width: 8.33%;
+    }
+    .col-2 {
+        width: 16.66%;
+    }
+    .col-3 {
+        width: 25%;
+    }
+    .col-4 {
+        width: 33.33%;
+    }
+    .col-5 {
+        width: 41.66%;
+    }
+    .col-6 {
+        width: 50%;
+    }
+    .col-7 {
+        width: 58.33%;
+    }
+    .col-8 {
+        width: 66.66%;
+    }
+    .col-9 {
+        width: 75%;
+    }
+    .col-10 {
+        width: 83.33%;
+    }
+    .col-11 {
+        width: 91.66%;
+    }
+    .col-12 {
+        width: 100%;
+    }
+}
+
+/*
+ * # colors
+ ******************************************************************************/
+
+.global {
+    background-color: #ddd;
+}
+
+.prime {
+    background-color: #fff;
+    box-shadow: 0px 2px 5px hsla(0, 0%, 60%, 1);
+}
+
+/*
+ * # font sizes
+ ******************************************************************************/
+
+h1 {
+    font-size: 2.6rem;
+    margin-top: 1.6rem;
+    margin-bottom: 0.5rem;
+}
+
+h2 {
+    font-size: 1.8rem;
+    margin-top: 1.0rem;
+    margin-bottom: 0.5rem;
+}
+
+h3 {
+    font-size: 1.2rem;
+    margin-top: 0.8rem;
+    margin-bottom: 0.5rem;
+}
+
+h4 {
+    font-size: 1.1rem;
+    margin-top: 0.8rem;
+    margin-bottom: 0.5rem;
+}
+
+h5 {
+    font-size: 1.0rem;
+    padding: 0.5rem;
+    border-radius: 5px;
+    background-color: #eee;
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+a:hover {
+    color: #555;
+    text-decoration: underline;
+}
+
+pre {
+    margin: 0;
+}
