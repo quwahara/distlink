@@ -78,6 +78,25 @@
 
     const _ridDic = {};
 
+    distlink.endsWithPred = function (key) {
+        return (function (key) {
+            return function (target) {
+                if (!isString(target)) { return false; }
+                const index = target.indexOf(key);
+                return index >= 0 && index === (target.length - key.length);
+            };
+        })(key);
+    };
+
+    distlink.csvContainsPred = function (key) {
+        return (function (key) {
+            return function (target) {
+                if (!isString(target)) { return false; }
+                return target.split(/\s*,\s*/g).indexOf(key) >= 0;
+            };
+        })(key);
+    };
+
     function loadObjectLink(owner, nameInOwner, object) {
         if (!isObject(object)) {
             throw Error("The argument type was not an object.");
