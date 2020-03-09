@@ -1,12 +1,40 @@
-(function (definition) {
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: distlink.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: distlink.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>(function (definition) {
     if (typeof exports === "object") {
         // CommonJS
         module.exports = definition();
-    } else if (typeof define === "function" && define.amd) {
+    } else if (typeof define === "function" &amp;&amp; define.amd) {
         // RequireJS
         define(definition);
     } else {
-        // <script>
+        // &lt;script>
         distlink = definition();
     }
 })(function () {
@@ -17,7 +45,7 @@
     }
 
     function isFunction(v) {
-        return v && typeof v === "function";
+        return v &amp;&amp; typeof v === "function";
     }
 
     function isInt(v) {
@@ -29,7 +57,7 @@
     }
 
     function isObject(v) {
-        return v && !Array.isArray(v) && (typeof v) === "object";
+        return v &amp;&amp; !Array.isArray(v) &amp;&amp; (typeof v) === "object";
     }
 
     function isPrimitive(v) {
@@ -43,27 +71,27 @@
     }
 
     function isEmptyString(v) {
-        return isNullOrUndefined(v) || (isString(v) && v === "");
+        return isNullOrUndefined(v) || (isString(v) &amp;&amp; v === "");
     }
 
     function isAttr(v) {
-        return v && v.nodeType === Node.ATTRIBUTE_NODE;
+        return v &amp;&amp; v.nodeType === Node.ATTRIBUTE_NODE;
     }
 
     function isElementNode(v) {
-        return v && v.nodeType === Node.ELEMENT_NODE;
+        return v &amp;&amp; v.nodeType === Node.ELEMENT_NODE;
     }
 
     function isTextNode(v) {
-        return v && v.nodeType === Node.TEXT_NODE;
+        return v &amp;&amp; v.nodeType === Node.TEXT_NODE;
     }
 
     function isInputFamily(v) {
-        return v && (v.tagName === "INPUT" || v.tagName === "TEXTAREA" || v.tagName === "SELECT");
+        return v &amp;&amp; (v.tagName === "INPUT" || v.tagName === "TEXTAREA" || v.tagName === "SELECT");
     }
 
     function isTerminalTag(v) {
-        return v && (v.tagName === "INPUT" || v.tagName === "HR");
+        return v &amp;&amp; (v.tagName === "INPUT" || v.tagName === "HR");
     }
 
     function removeChildren(node) {
@@ -90,7 +118,7 @@
             return function (target) {
                 if (!isString(target)) { return false; }
                 const index = target.indexOf(key);
-                return index >= 0 && index === (target.length - key.length);
+                return index >= 0 &amp;&amp; index === (target.length - key.length);
             };
         })(key);
     };
@@ -213,7 +241,7 @@
             })(this, key, prop);
         }
 
-        if (isObject(owner) && isString(nameInOwner)) {
+        if (isObject(owner) &amp;&amp; isString(nameInOwner)) {
             (function (self) {
                 Object.defineProperty(owner, nameInOwner, {
                     enumerable: true,
@@ -296,8 +324,8 @@
 
         // Holding contents are:
         // {
-        //    callback: <function>,
-        //    selectedElement: <ElementNode>
+        //    callback: &lt;function>,
+        //    selectedElement: &lt;ElementNode>
         // }
         this._eachContexts = [];
 
@@ -381,10 +409,10 @@
             this._value = value;
         }
 
-        for (let i = 0; i < this._eachContexts.length; ++i) {
+        for (let i = 0; i &lt; this._eachContexts.length; ++i) {
             const context = this._eachContexts[i];
             removeChildren(context.selectedElement);
-            for (let j = 0; j < value.length; ++j) {
+            for (let j = 0; j &lt; value.length; ++j) {
 
                 let childElement;
                 if (context.firstElementChild) {
@@ -430,41 +458,41 @@
         // Holding contents are:
         // key = eventType
         // value = {
-        //    listener: <function>,
-        //    inputs: [<input>]
+        //    listener: &lt;function>,
+        //    inputs: [&lt;input>]
         // }
         this._listenerContexts = {};
 
         // Holding contents are:
-        //    [<ElementNode>]
+        //    [&lt;ElementNode>]
         this._toTextElements = [];
 
         // Holding contents are:
         // key = attrName
         // value = {
-        //    attrName: <attrName:string>,
-        //    elements: [<ElementNode>]
+        //    attrName: &lt;attrName:string>,
+        //    elements: [&lt;ElementNode>]
         // }
         this._toAttrContexts = {};
 
         // Holding contents are:
-        //    <ElementNode>
+        //    &lt;ElementNode>
         this._toClassElements = [];
 
         // Holding contents are:
         // key = className + ("_on" | "_off")
         // value = {
-        //    className: <className:string>,
-        //    onOrOff: <onOrOff:boolean>,
-        //    elements: [<ElementNode>]
+        //    className: &lt;className:string>,
+        //    onOrOff: &lt;onOrOff:boolean>,
+        //    elements: [&lt;ElementNode>]
         // }
         this._turnClassContexts = {};
 
         // Holding contents are:
         // [
         //    {
-        //      rule: <CSSStyleRule>,
-        //      styleName: <styleName:String>
+        //      rule: &lt;CSSStyleRule>,
+        //      styleName: &lt;styleName:String>
         //    }
         // ]
         this._toStyleOfRuleAndStyleNames = [];
@@ -674,10 +702,10 @@
 
     PrimitiveLink.prototype.selectRule = function (hrefPred, ruleSelectorPred) {
         const rules = [];
-        for (let i = 0; i < document.styleSheets.length; ++i) {
+        for (let i = 0; i &lt; document.styleSheets.length; ++i) {
             const sheet = document.styleSheets[i];
             if (hrefPred(sheet.href)) {
-                for (let j = 0; j < sheet.cssRules.length; ++j) {
+                for (let j = 0; j &lt; sheet.cssRules.length; ++j) {
                     const rule = sheet.cssRules[j];
                     if (!rule.selectorText) { continue; }
                     if (ruleSelectorPred(rule.selectorText)) {
@@ -700,12 +728,12 @@
         const rns = this._toStyleOfRuleAndStyleNames;
         const newRns = [];
 
-        for (let i = 0; i < rules.length; ++i) {
+        for (let i = 0; i &lt; rules.length; ++i) {
             const rule = rules[i];
             let found = false;
-            for (let j = 0; j < rns.length; ++j) {
+            for (let j = 0; j &lt; rns.length; ++j) {
                 const rn = rns[j];
-                if (rn.rule === rule && rn.styleName === styleName) {
+                if (rn.rule === rule &amp;&amp; rn.styleName === styleName) {
                     found = true;
                     continue;
                 }
@@ -720,7 +748,7 @@
 
         Array.prototype.push.apply(rns, newRns);
 
-        for (let i = 0; i < rns.length; ++i) {
+        for (let i = 0; i &lt; rns.length; ++i) {
             const rn = rns[i];
             rn.rule.style[rn.styleName] = this._value;
         }
@@ -760,7 +788,7 @@
         for (let eventType in this._listenerContexts) {
             const context = this._listenerContexts[eventType];
             const inputs = context.inputs;
-            for (let i = 0; i < inputs.length; ++i) {
+            for (let i = 0; i &lt; inputs.length; ++i) {
                 const input = inputs[i];
                 if (input === source) {
                     continue;
@@ -769,7 +797,7 @@
             }
         }
 
-        for (let i = 0; i < this._toTextElements.length; ++i) {
+        for (let i = 0; i &lt; this._toTextElements.length; ++i) {
             const element = this._toTextElements[i];
             if (element === source) {
                 continue;
@@ -780,7 +808,7 @@
         for (let attrName in this._toAttrContexts) {
             const context = this._toAttrContexts[attrName];
             const elements = context.elements;
-            for (let i = 0; i < elements.length; ++i) {
+            for (let i = 0; i &lt; elements.length; ++i) {
                 const element = elements[i];
                 if (element === source) {
                     continue;
@@ -789,7 +817,7 @@
             }
         }
 
-        for (let i = 0; i < this._toClassElements.length; ++i) {
+        for (let i = 0; i &lt; this._toClassElements.length; ++i) {
             const element = this._toClassElements[i];
             if (element === source) {
                 continue;
@@ -806,7 +834,7 @@
         for (let key in this._turnClassContexts) {
             const context = this._turnClassContexts[key];
             const elements = context.elements;
-            for (let i = 0; i < elements.length; ++i) {
+            for (let i = 0; i &lt; elements.length; ++i) {
                 const element = elements[i];
                 if (element === source) {
                     continue;
@@ -821,7 +849,7 @@
         }
 
         const rns = this._toStyleOfRuleAndStyleNames;
-        for (let i = 0; i < rns.length; ++i) {
+        for (let i = 0; i &lt; rns.length; ++i) {
             const rn = rns[i];
             rn.rule.style[rn.styleName] = this._value;
         }
@@ -831,3 +859,26 @@
     return distlink;
 });
 
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="ArrayLink.html">ArrayLink</a></li><li><a href="ObjectLink.html">ObjectLink</a></li></ul><h3>Global</h3><ul><li><a href="global.html#distlink">distlink</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.3</a> on Mon Mar 09 2020 20:32:59 GMT+0900 (JST)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>
