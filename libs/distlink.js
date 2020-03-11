@@ -672,24 +672,15 @@
         return this._objectLink;
     };
 
-    PrimitiveLink.prototype.selectRule = function (hrefPred, ruleSelectorPred) {
+    PrimitiveLink.prototype.selectRule = function (rule) {
         const rules = [];
-        for (let i = 0; i < document.styleSheets.length; ++i) {
-            const sheet = document.styleSheets[i];
-            if (hrefPred(sheet.href)) {
-                for (let j = 0; j < sheet.cssRules.length; ++j) {
-                    const rule = sheet.cssRules[j];
-                    if (!rule.selectorText) { continue; }
-                    if (ruleSelectorPred(rule.selectorText)) {
-                        rules.push(rule);
-                    }
-                }
-            }
+
+        if (rule.constructor !== CSSStyleRule) {
+            throw Error("The argument rule was not CSSStyleRule.");
         }
 
-        if (rules.length > 0) {
-            this._rules = rules;
-        }
+        rules.push(rule);
+        this._rules = rules;
 
         return this;
     };
