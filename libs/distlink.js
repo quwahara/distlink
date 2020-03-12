@@ -698,6 +698,10 @@
             throw Error("The argument rule was not CSSStyleRule.");
         }
 
+        if (rule.type !== CSSRule.STYLE_RULE) {
+            throw Error("The CSSRule type was not STYLE_RULE.");
+        }
+
         rules.push(rule);
         this._rules = rules;
 
