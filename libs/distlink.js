@@ -171,6 +171,7 @@
     const ObjectLink = /** @lends ObjectLink */ function ObjectLink(owner, nameInOwner, object) {
         this._owner = owner;
         this._nameInOwner = nameInOwner;
+        /** @member {Object} Original object */
         this._object = object;
         this._selected = null;
         this._propDic = {};
@@ -280,10 +281,10 @@
      * Creates a new ArrayLink.
      * 
      * @class ArrayLink
-     * @param {object} objectLink An ObjectList that has a property of array
+     * @param {ObjectLink} objectLink An ObjectLink that has a property of array
      * @param {string} nameInObject Property name that has the array
      */
-    const ArrayLink = function ArrayLink(objectLink, nameInObject) {
+    const ArrayLink = /** @lends ArrayLink */ function ArrayLink(objectLink, nameInObject) {
         this._objectLink = objectLink;
         this._nameInObject = nameInObject;
         this._value = objectLink._object[nameInObject];
@@ -415,7 +416,14 @@
 
     };
 
-    const PrimitiveLink = function PrimitiveLink(objectLink, nameInObject) {
+    /**
+     * Creates a new PrimitiveLink.
+     * 
+     * @class PrimitiveLink
+     * @param {ObjectLink} objectLink An ObjectLink that has a property of primitive value
+     * @param {string} nameInObject Property name that has the ObjectLink
+     */
+    const PrimitiveLink = /** @lends PrimitiveLink */ function PrimitiveLink(objectLink, nameInObject) {
         this._objectLink = objectLink;
         this._nameInObject = nameInObject;
         this._value = objectLink._object[nameInObject];
@@ -469,19 +477,30 @@
         // ]
         this._toStyleOfRuleAndStyleNames = [];
 
+        const getter = (function (self) {
+            return function () {
+                return self._value;
+            };
+        })(this);
+
+        const setter = (function (self) {
+            return function (value) {
+                self._value = value;
+                self._propagate(self, value);
+            };
+        })(this);
+
         Object.defineProperty(objectLink._object, nameInObject, {
             enumerable: true,
-            get: (function (self) {
-                return function () {
-                    return self._value;
-                };
-            })(this),
-            set: (function (self) {
-                return function (value) {
-                    self._value = value;
-                    self._propagate(self, value);
-                };
-            })(this),
+            get: getter,
+            set: setter,
+        });
+
+        /** @property {(boolean|number|string)} value Accessor of associated property value */
+        Object.defineProperty(this, "value", {
+            enumerable: false,
+            get: getter,
+            set: setter,
         });
     };
 
