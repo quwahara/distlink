@@ -80,7 +80,7 @@
      * @returns     {ObjectLink}        Created ObjectLink
      */
     const distlink = /** @lends distlink  */ function distlink(object) {
-        return loadObjectLink(null, null, object);
+        return loadObjectLinkByObject(null, null, object);
     }
 
     const _ridDic = {};
@@ -104,7 +104,7 @@
         })(key);
     };
 
-    function loadObjectLink(owner, nameInOwner, object) {
+    function loadObjectLinkByObject(owner, nameInOwner, object) {
         if (!isObject(object)) {
             throw Error("The argument type was not an object.");
         }
@@ -114,13 +114,13 @@
         }
 
         const _rid = defineRidProp(object);
-        const prop = new ObjectLink(owner, nameInOwner, object);
+        const prop = new ObjectLink(owner, nameInOwner, null, null, object);
         _ridDic[_rid] = prop;
 
         return prop;
     }
 
-    function loadArrayLink(owner, nameInOwner, array) {
+    function loadArrayLinkByObject(owner, nameInOwner, array) {
         if (!isArray(array)) {
             throw Error("The argument type was not an array.");
         }
@@ -130,10 +130,42 @@
         }
 
         const _rid = defineRidProp(array);
-        const prop = new ArrayLink(owner, nameInOwner);
+        const prop = new ArrayLink(owner, nameInOwner, null, null, array);
         _ridDic[_rid] = prop;
 
         return prop;
+    }
+
+    function loadObjectLinkByArray(owner, indexAtOwner, object) {
+        if (!isObject(object)) {
+            throw Error("The argument type was not an object.");
+        }
+
+        if (object._rid) {
+            return _ridDic[object._rid];
+        }
+
+        const _rid = defineRidProp(object);
+        const objectLink = new ObjectLink(null, null, owner, indexAtOwner, object);
+        _ridDic[_rid] = objectLink;
+
+        return objectLink;
+    }
+
+    function loadArrayLinkByArray(owner, indexAtOwner, array) {
+        if (!isArray(array)) {
+            throw Error("The argument type was not an array.");
+        }
+
+        if (array._rid) {
+            return _ridDic[array._rid];
+        }
+
+        const _rid = defineRidProp(array);
+        const arrayLink = new ArrayLink(null, null, owner, indexAtOwner, array);
+        _ridDic[_rid] = arrayLink;
+
+        return arrayLink;
     }
 
     function defineRidProp(target) {
@@ -164,11 +196,13 @@
      * Creates a new ObjectLink.
      * 
      * @class ObjectLink
-     * @param   {?object}   owner           An object that has a property of object.
-     * @param   {?string}   nameInOwner     Property name that has the object.
-     * @param   {object}    object          The value of property.
+     * @param   {?object}       owner           An object that has a property of object.
+     * @param   {?string}       nameInOwner     Property name that has the object.
+     * @param   {?ArrayLink}    arrayLink       An ArrayLink that has an item of primitive value
+     * @param   {?number}       indexAtArray    Index at the original array for ArrayObjec
+     * @param   {object}        object          The value of property.
      */
-    const ObjectLink = /** @lends ObjectLink */ function ObjectLink(owner, nameInOwner, object) {
+    const ObjectLink = /** @lends ObjectLink */ function ObjectLink(owner, nameInOwner, arrayLink, indexAtArray, object) {
         this._owner = owner;
         this._nameInOwner = nameInOwner;
         /** @member {Object} Original object */
@@ -190,13 +224,13 @@
             const value = object[key];
             let prop;
             if (isNullOrUndefined(value) || isPrimitive(value)) {
-                prop = new PrimitiveLink(this, key);
+                prop = new PrimitiveLink(this, key, null, null);
             }
             else if (isObject(value)) {
-                prop = loadObjectLink(object, key, value);
+                prop = loadObjectLinkByObject(object, key, value);
             }
             else if (isArray(value)) {
-                prop = loadArrayLink(this, key, value);
+                prop = loadArrayLinkByObject(this, key, value);
             }
             else {
                 throw Error("Unsupported type");
@@ -214,9 +248,9 @@
             })(this, key, prop);
         }
 
-        if (isObject(owner) && isString(nameInOwner)) {
+        if (isObject(this._owner) && isString(nameInOwner)) {
             (function (self) {
-                Object.defineProperty(owner, nameInOwner, {
+                Object.defineProperty(self._owner, nameInOwner, {
                     enumerable: true,
                     get: function () {
                         return self._object;
@@ -277,22 +311,83 @@
         }
     }
 
+    ObjectLink.prototype._destroy = function () {
+
+        const keys = Object.keys(this._propDic);
+        for (let i = 0; i < keys.length; ++i) {
+            keys[i]._destroy();
+        }
+
+        return this;
+    };
+
     /**
      * Creates a new ArrayLink.
      * 
      * @class ArrayLink
-     * @param {ObjectLink} objectLink An ObjectLink that has a property of array
-     * @param {string} nameInObject Property name that has the array
+     * @param   {ObjectLink}    objectLink      An ObjectLink that has a property of array
+     * @param   {string}        nameInObject    Property name that has the array
+     * @param   {ArrayLink}     arrayLink       An ArrayLink that has an item of primitive value
+     * @param   {number}        indexAtArray    Index at the original array for ArrayObjec
+     * @param   {array}         array           The array to be linked.
      */
-    const ArrayLink = /** @lends ArrayLink */ function ArrayLink(objectLink, nameInObject) {
-        this._objectLink = objectLink;
-        this._nameInObject = nameInObject;
-        this._value = objectLink._object[nameInObject];
+    const ArrayLink = /** @lends ArrayLink */ function ArrayLink(objectLink, nameInObject, arrayLink, indexAtArray, array) {
+
+        /** @member {array} Original array */
+        this._value = array;
+
+        if (objectLink) {
+            this._objectLink = objectLink;
+            this._nameInObject = nameInObject;
+
+            Object.defineProperty(this._objectLink._object, this._nameInObject, {
+                enumerable: true,
+                get: (function (self) {
+                    return function () {
+                        return self._value;
+                    };
+                })(this),
+                set: (function (self) {
+                    return function (value) {
+                        self._value = value;
+                        self._propagate(self, value);
+                    };
+                })(this),
+            });
+        }
+        else if (arrayLink) {
+            this._arrayLink = arrayLink;
+            this._indexAtArray = indexAtArray;
+        }
+
         if (isNullOrUndefined(objectLink._object[nameInObject])) {
             this._previousValue = "";
         } else {
             this._previousValue = "" + objectLink._object[nameInObject];
         }
+        /** @member {array} XxxLiks for items in this._value array */
+        this._xxxLinks = [];
+
+        for (let i = 0; i < this._value.length; ++i) {
+            const item = this._value[i];
+
+            let xxxLink;
+            if (isNullOrUndefined(item) || isPrimitive(item)) {
+                xxxLink = new PrimitiveLink(null, null, this, i);
+            }
+            else if (isObject(item)) {
+                xxxLink = loadObjectLinkByArray(this, i, item);
+            }
+            else if (isArray(item)) {
+                xxxLink = loadArrayLinkByArray(this, i, item);
+            }
+            else {
+                throw Error("Unsupported type");
+            }
+
+            this._xxxLinks.push(xxxLink);
+        }
+
         this._selected = null;
 
         // Holding contents are:
@@ -302,22 +397,22 @@
         // }
         this._eachContexts = [];
 
-        Object.defineProperty(objectLink._object, nameInObject, {
-            enumerable: true,
-            get: (function (self) {
-                return function () {
-                    return self._value;
-                };
-            })(this),
-            set: (function (self) {
-                return function (value) {
-                    self._value = value;
-                    self._propagate(self, value);
-                };
-            })(this),
-        });
-
     }
+
+    ArrayLink.prototype.item = function (index, value) {
+
+        const argLen = arguments.length;
+        if (argLen !== 1 && argLen !== 2) {
+            throw Error("Bad argument count");
+        }
+
+        // setter
+        if (argLen === 2) {
+            this._xxxlinks[index]._propagate(this, value);
+        }
+
+        return this._value[index];
+    };
 
     ArrayLink.prototype.select = function (queryOrElement) {
 
@@ -396,19 +491,12 @@
                     childElement = null;
                 }
 
-                const item = value[j];
-                let issue;
-                if (isObject(item)) {
-                    issue = distlink(item);
-                    if (childElement) {
-                        issue.select(childElement);
-                    }
-                }
-                else {
-                    issue = item;
+                const xxxLink = this._xxxLinks[j];
+                if (childElement) {
+                    xxxLink.select(childElement);
                 }
 
-                if (false === context.callback.call(this, issue, childElement, j, context.selectedElement)) {
+                if (false === context.callback.call(this, xxxLink, childElement, j, context.selectedElement)) {
                     break;
                 }
             }
@@ -422,11 +510,48 @@
      * @class PrimitiveLink
      * @param {ObjectLink} objectLink An ObjectLink that has a property of primitive value
      * @param {string} nameInObject Property name that has the ObjectLink
+     * @param {ArrayLink} arrayLink An ArrayLink that has an item of primitive value
+     * @param {number} indexAtArray Index at the original array for ArrayObjec
      */
-    const PrimitiveLink = /** @lends PrimitiveLink */ function PrimitiveLink(objectLink, nameInObject) {
+    const PrimitiveLink = /** @lends PrimitiveLink */ function PrimitiveLink(objectLink, nameInObject, arrayLink, indexAtArray) {
         this._objectLink = objectLink;
         this._nameInObject = nameInObject;
-        this._value = objectLink._object[nameInObject];
+        this._arrayLink = arrayLink;
+        this._indexAtArray = indexAtArray;
+
+        if (this._objectLink) {
+            this._value = this._objectLink._object[this._nameInObject];
+
+            const getter = (function (self) {
+                return function () {
+                    return self._value;
+                };
+            })(this);
+
+            const setter = (function (self) {
+                return function (value) {
+                    self._value = value;
+                    self._propagate(self, value);
+                };
+            })(this);
+
+            Object.defineProperty(objectLink._object, nameInObject, {
+                enumerable: true,
+                get: getter,
+                set: setter,
+            });
+
+            /** @property {(boolean|number|string)} value Accessor of associated property value */
+            Object.defineProperty(this, "value", {
+                enumerable: false,
+                get: getter,
+                set: setter,
+            });
+        }
+        else if (this._arrayLink) {
+            this._value = this._arrayLink._value[this._indexAtArray];
+        }
+
         if (isNullOrUndefined(objectLink._object[nameInObject])) {
             this._previousValue = "";
         } else {
@@ -477,31 +602,6 @@
         // ]
         this._toStyleOfRuleAndStyleNames = [];
 
-        const getter = (function (self) {
-            return function () {
-                return self._value;
-            };
-        })(this);
-
-        const setter = (function (self) {
-            return function (value) {
-                self._value = value;
-                self._propagate(self, value);
-            };
-        })(this);
-
-        Object.defineProperty(objectLink._object, nameInObject, {
-            enumerable: true,
-            get: getter,
-            set: setter,
-        });
-
-        /** @property {(boolean|number|string)} value Accessor of associated property value */
-        Object.defineProperty(this, "value", {
-            enumerable: false,
-            get: getter,
-            set: setter,
-        });
     };
 
     PrimitiveLink.prototype._assertSelected = function () {
@@ -841,6 +941,22 @@
         }
 
     } // End of _propagate
+
+    PrimitiveLink.prototype._destroy = function () {
+
+        const eventTypes = Object.keys(this._listenerContexts);
+        for (let i = 0; i < eventTypes.length; ++i) {
+            const eventType = eventTypes[i];
+            const context = this._listenerContexts[eventType];
+            const inputs = context.inputs;
+            for (let j = 0; j < inputs.length; ++j) {
+                const input = inputs[j];
+                input.removeEventListener(eventType, context.listener);
+            }
+        }
+
+        return this;
+    };
 
     return distlink;
 });
