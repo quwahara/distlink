@@ -20,9 +20,12 @@
         return v && typeof v === "function";
     }
 
-    function isInt(v) {
-        return v === parseInt(v, 10);
-    }
+    function isInteger(value) {
+        // refs: https://developer.mozilla.org/ja/docs/Web/JavaScript/Reference/Global_Objects/Number/isInteger
+        return typeof value === 'number' &&
+            isFinite(value) &&
+            Math.floor(value) === value;
+    };
 
     function isNullOrUndefined(v) {
         return v == null;
@@ -220,6 +223,7 @@
             })(this)
         });
 
+        // Create xxxLink for each properties
         for (let key in object) {
             const value = object[key];
             let prop;
@@ -237,6 +241,7 @@
             }
             this._propDic[key] = prop;
 
+            // Define property of xxxLink to this 
             (function (self, key, prop) {
                 Object.defineProperty(self, key, {
                     enumerable: true,
@@ -248,6 +253,7 @@
             })(this, key, prop);
         }
 
+        // Create getter/setter for original object
         if (isObject(this._owner) && isString(nameInOwner)) {
             (function (self) {
                 Object.defineProperty(self._owner, nameInOwner, {
@@ -315,7 +321,7 @@
 
         const keys = Object.keys(this._propDic);
         for (let i = 0; i < keys.length; ++i) {
-            keys[i]._destroy();
+            this._propDic[keys[i]]._destroy();
         }
 
         return this;
@@ -366,8 +372,9 @@
             this._previousValue = "" + objectLink._object[nameInObject];
         }
         /** @member {array} XxxLiks for items in this._value array */
-        this._xxxLinks = [];
+        this.links = [];
 
+        // Create xxxLink for each items
         for (let i = 0; i < this._value.length; ++i) {
             const item = this._value[i];
 
@@ -385,7 +392,7 @@
                 throw Error("Unsupported type");
             }
 
-            this._xxxLinks.push(xxxLink);
+            this.links.push(xxxLink);
         }
 
         this._selected = null;
@@ -396,7 +403,6 @@
         //    selectedElement: <ElementNode>
         // }
         this._eachContexts = [];
-
     }
 
     ArrayLink.prototype.item = function (index, value) {
@@ -408,7 +414,7 @@
 
         // setter
         if (argLen === 2) {
-            this._xxxlinks[index]._propagate(this, value);
+            this.links[index]._propagate(this, value);
         }
 
         return this._value[index];
@@ -464,6 +470,7 @@
             callback: callback,
             selectedElement: this._selected,
             firstElementChild: this._selected.firstElementChild ? this._selected.firstElementChild.cloneNode(true) : null,
+            childElements: [],
         });
 
         this._propagate(null, this._value);
@@ -490,8 +497,9 @@
                 else {
                     childElement = null;
                 }
+                context.childElements.push(childElement);
 
-                const xxxLink = this._xxxLinks[j];
+                const xxxLink = this.links[j];
                 if (childElement) {
                     xxxLink.select(childElement);
                 }
@@ -503,6 +511,75 @@
         }
 
     };
+
+    ArrayLink.prototype.remove = function (index, count) {
+
+        // validations and aborts
+
+        if (this.links.length === 0) {
+            return this;
+        }
+
+        if (!isInteger(index)) {
+            return this;
+        }
+
+        if (index < 0 || this.links.length <= index) {
+            return this;
+        }
+
+        if (isNullOrUndefined(count)) {
+            count = 1;
+        } else {
+            if (!isInteger(count)) {
+                return this;
+            }
+        }
+
+        if (count <= 0) {
+            return this;
+        }
+
+        //
+        // process
+        //
+
+        // Confirm end index
+        let end = index + count;
+        if (end > this.links.length) {
+            end = this.links.length;
+        }
+
+        // Call _destroy for each items
+        for (let i = end - 1; i >= 0; --i) {
+            if (this.links[i]._destroy) {
+                this.links[i]._destroy();
+            }
+        }
+
+        // Remove relational elements
+        for (let i = 0; i < this._eachContexts.length; ++i) {
+            const context = this._eachContexts[i];
+            const removingElements = context.childElements.splice(index, end);
+            for (let j = removingElements.length - 1; j >= 0; --j) {
+                const removingElement = removingElements[j];
+                if (removingElement) {
+                    context.selectedElement.removeChild(removingElement);
+                }
+            }
+        }
+
+        // Release items
+        this.links.splice(index, count);
+        this._value.splice(index, count);
+
+        return this;
+    };
+
+    ArrayLink.prototype._destroy = function () {
+        this.remove(0, this.links.length);
+        return this;
+    }
 
     /**
      * Creates a new PrimitiveLink.
