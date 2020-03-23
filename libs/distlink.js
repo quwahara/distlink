@@ -378,21 +378,23 @@
         for (let i = 0; i < this._value.length; ++i) {
             const item = this._value[i];
 
-            let xxxLink;
-            if (isNullOrUndefined(item) || isPrimitive(item)) {
-                xxxLink = new PrimitiveLink(null, null, this, i);
-            }
-            else if (isObject(item)) {
-                xxxLink = loadObjectLinkByArray(this, i, item);
-            }
-            else if (isArray(item)) {
-                xxxLink = loadArrayLinkByArray(this, i, item);
-            }
-            else {
-                throw Error("Unsupported type");
-            }
+            this._itemToXxxLink(i, item);
 
-            this.links.push(xxxLink);
+            // let xxxLink;
+            // if (isNullOrUndefined(item) || isPrimitive(item)) {
+            //     xxxLink = new PrimitiveLink(null, null, this, i);
+            // }
+            // else if (isObject(item)) {
+            //     xxxLink = loadObjectLinkByArray(this, i, item);
+            // }
+            // else if (isArray(item)) {
+            //     xxxLink = loadArrayLinkByArray(this, i, item);
+            // }
+            // else {
+            //     throw Error("Unsupported type");
+            // }
+
+            // this.links.push(xxxLink);
         }
 
         this._selected = null;
@@ -405,20 +407,49 @@
         this._eachContexts = [];
     }
 
-    ArrayLink.prototype.item = function (index, value) {
+    ArrayLink.prototype.append = function (item) {
 
-        const argLen = arguments.length;
-        if (argLen !== 1 && argLen !== 2) {
-            throw Error("Bad argument count");
+        this._value.push(item);
+        this._itemToXxxLink(this._value.length - 1, item);
+
+        return this;
+    }
+
+    ArrayLink.prototype._itemToXxxLink = function (index, item) {
+
+        let xxxLink;
+        if (isNullOrUndefined(item) || isPrimitive(item)) {
+            xxxLink = new PrimitiveLink(null, null, this, index);
+        }
+        else if (isObject(item)) {
+            xxxLink = loadObjectLinkByArray(this, index, item);
+        }
+        else if (isArray(item)) {
+            xxxLink = loadArrayLinkByArray(this, index, item);
+        }
+        else {
+            throw Error("Unsupported type");
         }
 
-        // setter
-        if (argLen === 2) {
-            this.links[index]._propagate(this, value);
-        }
+        this.links.push(xxxLink);
 
-        return this._value[index];
-    };
+        return this;
+    }
+
+    // ArrayLink.prototype.item = function (index, value) {
+
+    //     const argLen = arguments.length;
+    //     if (argLen !== 1 && argLen !== 2) {
+    //         throw Error("Bad argument count");
+    //     }
+
+    //     // setter
+    //     if (argLen === 2) {
+    //         this.links[index]._propagate(this, value);
+    //     }
+
+    //     return this._value[index];
+    // };
 
     ArrayLink.prototype.select = function (queryOrElement) {
 
