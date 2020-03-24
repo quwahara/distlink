@@ -390,11 +390,11 @@
         this._eachContexts = [];
     }
 
-    ArrayLink.prototype.append = function (item) {
-
+    ArrayLink.prototype.push = function (item) {
         this._value.push(item);
-        this._itemToXxxLink(this._value.length - 1, item);
-
+        const index = this._value.length - 1;
+        this._itemToXxxLink(index, item);
+        this._propagateItem(this, index, item);
         return this;
     }
 
