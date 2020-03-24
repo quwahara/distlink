@@ -377,24 +377,7 @@
         // Create xxxLink for each items
         for (let i = 0; i < this._value.length; ++i) {
             const item = this._value[i];
-
             this._itemToXxxLink(i, item);
-
-            // let xxxLink;
-            // if (isNullOrUndefined(item) || isPrimitive(item)) {
-            //     xxxLink = new PrimitiveLink(null, null, this, i);
-            // }
-            // else if (isObject(item)) {
-            //     xxxLink = loadObjectLinkByArray(this, i, item);
-            // }
-            // else if (isArray(item)) {
-            //     xxxLink = loadArrayLinkByArray(this, i, item);
-            // }
-            // else {
-            //     throw Error("Unsupported type");
-            // }
-
-            // this.links.push(xxxLink);
         }
 
         this._selected = null;
@@ -435,21 +418,6 @@
 
         return this;
     }
-
-    // ArrayLink.prototype.item = function (index, value) {
-
-    //     const argLen = arguments.length;
-    //     if (argLen !== 1 && argLen !== 2) {
-    //         throw Error("Bad argument count");
-    //     }
-
-    //     // setter
-    //     if (argLen === 2) {
-    //         this.links[index]._propagate(this, value);
-    //     }
-
-    //     return this._value[index];
-    // };
 
     ArrayLink.prototype.select = function (queryOrElement) {
 
