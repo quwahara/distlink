@@ -497,12 +497,16 @@
             throw Error("No ElementNode was selected.");
         }
 
-        this._eachContexts.push({
+        const context = {
             callback: callback,
             selectedElement: this._selected,
             firstElementChild: this._selected.firstElementChild ? this._selected.firstElementChild.cloneNode(true) : null,
             childElements: [],
-        });
+        };
+
+        removeChildren(context.selectedElement);
+
+        this._eachContexts.push(context);
 
         this._propagate(null, this._value);
 
@@ -517,8 +521,7 @@
 
         for (let i = 0; i < this._eachContexts.length; ++i) {
             const context = this._eachContexts[i];
-            removeChildren(context.selectedElement);
-            for (let j = 0; j < value.length; ++j) {
+            for (let j = 0; j < this.links.length; ++j) {
 
                 let childElement;
                 if (context.firstElementChild) {
@@ -542,6 +545,57 @@
         }
 
     };
+
+    // ArrayLink.prototype._propagateItem = function (source, index, value) {
+
+    //     if (!isInteger(index)) {
+    //         throw Error("The index was not integer.")
+    //     }
+
+    //     if (index < 0) {
+    //         throw Error("The index was negative.")
+    //     }
+
+    //     if (index >= this.links.length) {
+    //         throw Error("The index was out of range.")
+    //     }
+
+    //     const xxxLink = this.links[index];
+
+    //     if (source !== xxxLink) {
+    //         xxxLink.setValue(value);
+    //     }
+
+    //     for (let i = 0; i < this._eachContexts.length; ++i) {
+    //         const context = this._eachContexts[i];
+
+    //         // Create and fill child element array if length of child element array is less than index
+    //         while (context.childElements.length <= index) {
+    //             let childElement;
+    //             if (context.childElements.length === index) {
+    //                 if (context.firstElementChild) {
+    //                     childElement = context.firstElementChild.cloneNode(true);
+    //                     context.selectedElement.appendChild(childElement);
+    //                 }
+    //                 else {
+    //                     childElement = null;
+    //                 }
+    //             } else {
+    //                 childElement = null;
+    //             }
+    //             context.childElements.push(childElement);
+    //         }
+
+    //         let childElement = context.childElements[index];
+
+    //         if (childElement) {
+    //             xxxLink.select(childElement);
+    //         }
+
+    //         context.callback.call(this, xxxLink, childElement, index, context.selectedElement);
+    //     }
+
+    // };
 
     ArrayLink.prototype.remove = function (index, count) {
 
