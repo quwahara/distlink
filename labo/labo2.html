@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" type="text/css" href="../css/basic.css">
+    <link rel="stylesheet" type="text/css" href="labo-debug.css">
+    <script src="../libs/distlink2.js"></script>
+    <title>Labo</title>
+</head>
+
+<body>
+    <div>
+        <div class="text"></div>
+        <div class="array">
+            <div>
+                <span class="name"></span>
+                <span class="value"></span>
+            </div>
+        </div>
+    </div>
+    <script>
+        const data = {
+            text: "text",
+            array: [
+                { name: "item1", value: "value1" },
+                { name: "item2", value: "value2" },
+                { name: "item3", value: "value3" },
+            ]
+        };
+        distlink(data)
+            .text.select(".text").toText()
+            .array.select(".array").each(function (issue, childElement) {
+                console.log(arguments);
+                issue
+                    .name.select(".name").toText()
+                    .value.select(".value").toText()
+                    ;
+            })
+            ;
+    </script>
+</body>
+
+</html>
