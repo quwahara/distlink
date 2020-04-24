@@ -75,32 +75,24 @@
         }
     }
 
-    /** 
-     * Create a new ObjectLink
-     * 
-     * @function    distlink
-     * @param       {object}    object  It is to be an ObjectLink
-     * @returns     {ObjectLink}        Created ObjectLink
-     */
-    const distlink = /** @lends distlink  */ function distlink(object) {
-        return new ObjectLink(null, object);
-    }
-
-    const ObjectLink = /** @lends ObjectLink */ function ObjectLink(parentObjectLink, object) {
+    const ObjectLink = /** @lends ObjectLink */ function ObjectLink(parentLink, object) {
 
         this._selected = null;
         this._props = {};
 
-        if (parentObjectLink == null) {
+        if (parentLink == null) {
             // It's OK.
         }
-        else if (parentObjectLink.constructor !== this) {
+        else if (parentLink.constructor !== this) {
             // TODO
         }
 
         if (!isObject(object)) {
             // TODO
         }
+
+        this._parentLink = parentLink;
+        this._object = object;
 
         for (let key in object) {
             if (!object.hasOwnProperty(key)) {
@@ -129,20 +121,25 @@
         return this;
     };
 
-    ObjectLink.prototype.constructor = ObjectLink;
-
     const Prop = /** @lends Prop */ function Prop(objectLink, link, key) {
-
         this._link = link;
-
-        (function (link) {
+        (function (object, link) {
+            Object.defineProperty(object, key, {
+                enumerable: true,
+                get: function () {
+                    return link._getValue();
+                },
+                set: function (value) {
+                    link._setValue(value);
+                },
+            });
             Object.defineProperty(objectLink, key, {
                 enumerable: true,
                 get: function () {
                     return link;
                 },
             });
-        })(link);
+        })(objectLink._object, link);
     }
 
     const ArrayLink = /** @lends ArrayLink */ function ArrayLink(parentLink, array) {
@@ -180,12 +177,12 @@
     };
 
     /**
- * Registers an callback function that is called by propagation.
- * 
- * @name ArrayLink#each
- * @function
- * @param {eachCallback} callback Calls it back.
- */
+     * Registers an callback function that is called by propagation.
+     * 
+     * @name ArrayLink#each
+     * @function
+     * @param {eachCallback} callback Calls it back.
+     */
     ArrayLink.prototype.each = function (callback) {
 
         if (!isFunction(callback)) {
@@ -273,6 +270,10 @@
         this._propagations = [];
     }
 
+    PrimLink.prototype._getValue = function () {
+        return this._value;
+    }
+
     PrimLink.prototype._setValue = function (value) {
         if (this._value !== value) {
             this._previousValue = this._value;
@@ -308,18 +309,83 @@
         return this;
     };
 
-    PrimLink.prototype.toText = function () {
-        const element = this._assertSelected();
-        const propagation = new ToTextPropagation(this, element);
+    PrimLink.prototype.withValue = function (eventType) {
+
+        if (isNullOrUndefined(eventType)) {
+            eventType = "change";
+        }
+
+        // It adds a single event listener for an event among number of inputs.
+        // The listener delivers the value of event target to other inputs and
+        // property value of related object. 
+
+        const input = this._assertSelected();
+
+        // if (!isElementNode(this._selected)) {
+        //   throw Error("No ElementNode was selected.");
+        // }
+
+        if (!isInputFamily(input)) {
+            throw Error("Selected NodeElement was not an input, select nor textarea.");
+        }
+
+        const propagations = this._propagations;
+        for (let i = 0; i < propagations.length; i++) {
+            const propagation = propagations[i];
+            // We don't create ToTextPropagation twice that has same element.
+            if (propagation.constructor === WithValuePropagation && propagation._input === input) {
+                propagation.propagate();
+                return this._parentLink;
+            }
+        }
+
+        const propagation = new WithValuePropagation(this, input, eventType);
         propagation.propagate();
-        this._propagations.push(propagation);
+        propagations.push(propagation);
         return this._parentLink;
     }
 
-    PrimLink.prototype._propagate = function () {
-        for (let i = 0; i < this._propagations.length; i++) {
-            this._propagations[i].propagate();
+    const WithValuePropagation = /** @lends WithValuePropagation */ function WithValuePropagation(primLink, input, eventType) {
+        this._primLink = primLink;
+        this._input = input;
+        this._eventType = eventType;
+        this._handling = false;
+        this._listener = (function (self) {
+            return function (event) {
+                self._handling = true;
+                self._primLink._setValue(event.target.value);
+                self._handling = false;
+            };
+        })(this);
+        input.addEventListener(eventType, this._listener);
+    }
+
+    WithValuePropagation.prototype.propagate = function () {
+        if (!this._handling) {
+            this._input.value = this._primLink._value;
         }
+    }
+
+    WithValuePropagation.prototype._destroy = function () {
+        this._input.removeEventListener(this._eventType, this._listener);
+    }
+
+    PrimLink.prototype.toText = function () {
+        const element = this._assertSelected();
+        const propagations = this._propagations;
+        for (let i = 0; i < propagations.length; i++) {
+            const propagation = propagations[i];
+            // We don't create ToTextPropagation twice that has same element.
+            if (propagation.constructor === ToTextPropagation && propagation._element === element) {
+                propagation.propagate();
+                return this._parentLink;
+            }
+        }
+
+        const propagation = new ToTextPropagation(this, element);
+        propagation.propagate();
+        propagations.push(propagation);
+        return this._parentLink;
     }
 
     const ToTextPropagation = /** @lends ToTextPropagation */ function ToTextPropagation(primLink, element) {
@@ -329,6 +395,12 @@
 
     ToTextPropagation.prototype.propagate = function () {
         this._element.textContent = this._primLink._value;
+    }
+
+    PrimLink.prototype._propagate = function () {
+        for (let i = 0; i < this._propagations.length; i++) {
+            this._propagations[i].propagate();
+        }
     }
 
     function createLink(parentLink, value) {
@@ -348,6 +420,17 @@
         }
 
         return link;
+    }
+
+    /** 
+     * Create a new ObjectLink
+     * 
+     * @function    distlink
+     * @param       {object}    object  It is to be an ObjectLink
+     * @returns     {ObjectLink}        Created ObjectLink
+     */
+    const distlink = /** @lends distlink  */ function distlink(object) {
+        return createLink(null, object);
     }
 
     return distlink;

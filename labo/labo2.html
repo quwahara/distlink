@@ -20,6 +20,9 @@
                 <span class="value"></span>
             </div>
         </div>
+        <div>
+            <input type="text" name="text">
+        </div>
     </div>
     <script>
         const data = {
@@ -39,6 +42,7 @@
                     .value.select(".value").toText()
                     ;
             })
+            .text.select("[name='text']").withValue()
             ;
     </script>
 </body>
