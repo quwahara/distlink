@@ -171,6 +171,10 @@
         this._link._propagate();
     };
 
+    Item.prototype._destroy = function () {
+        this._link._destroy();
+    };
+
     ArrayLink.prototype.select = function (queryOrElement) {
 
         if (isString(queryOrElement)) {
@@ -252,11 +256,30 @@
         }
     }
 
+    EachPropagation.prototype._destroy = function () {
+        removeChildren(this._element);
+    }
+
     ArrayLink.prototype._propagate = function () {
         for (let i = 0; i < this._propagations.length; i++) {
             this._propagations[i].propagate();
         }
     }
+
+    ArrayLink.prototype._destroy = function () {
+
+        for (let index = 0; index < items.length; index++) {
+            items[index]._destroy();
+        }
+
+        const propagations = this._propagations;
+        for (let i = 0; i < propagations.length; i++) {
+            const propagation = propagations[i];
+            if (propagation._destroy) {
+                propagation._destroy();
+            }
+        }
+    };
 
     const PrimLink = /** @lends PrimLink */ function PrimLink(parentLink, value) {
         this._parentLink = parentLink;
