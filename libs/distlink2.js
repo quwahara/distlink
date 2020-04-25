@@ -585,6 +585,16 @@
         this._rule.style[this._styleName] = this._primLink.getValue();
     }
 
+    PrimLink.prototype._destroy = function () {
+        const propagations = this._propagations;
+        for (let i = 0; i < propagations.length; i++) {
+            const propagation = propagations[i];
+            if (propagation._destroy) {
+                propagation._destroy();
+            }
+        }
+    };
+
     function createLink(parentLink, value) {
         let link;
 
