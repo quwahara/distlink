@@ -445,12 +445,11 @@
     }
 
     PrimLink.prototype.toClass = function () {
-
         const element = this._assertSelected();
         const propagations = this._propagations;
         for (let i = 0; i < propagations.length; i++) {
             const propagation = propagations[i];
-            // We don't create ToClassPropagation twice that has same element and attrName.
+            // We don't create ToClassPropagation twice that has same element.
             if (propagation.constructor === ToClassPropagation
                 && propagation._element === element) {
                 propagation.propagate();
@@ -481,6 +480,53 @@
             classList.add(value);
         }
         this._previousValue = value;
+    }
+
+    PrimLink.prototype.turnClassOn = function (className) {
+        return this.turnClass(className, true);
+    }
+
+    PrimLink.prototype.turnClassOff = function (className) {
+        return this.turnClass(className, false);
+    }
+
+    PrimLink.prototype.turnClass = function (className, onOrOff) {
+        const element = this._assertSelected();
+        const propagations = this._propagations;
+        for (let i = 0; i < propagations.length; i++) {
+            const propagation = propagations[i];
+            // We don't create TurnClassPropagation twice 
+            // that has same element, className and onOrOff.
+            if (propagation.constructor === TurnClassPropagation
+                && propagation._element === element
+                && propagation._className === className
+                && propagation._onOrOff === !!onOrOff) {
+                propagation.propagate();
+                return this._parentLink;
+            }
+        }
+
+        const propagation = new TurnClassPropagation(this, element, className, onOrOff);
+        propagation.propagate();
+        propagations.push(propagation);
+        return this._parentLink;
+    };
+
+    const TurnClassPropagation = /** @lends TurnClassPropagation */ function TurnClassPropagation(primLink, element, className, onOrOff) {
+        this._primLink = primLink;
+        this._element = element;
+        this._className = className;
+        this._onOrOff = !!onOrOff;
+    }
+
+    TurnClassPropagation.prototype.propagate = function () {
+        const value = this._primLink.getValue();
+        const on = this._onOrOff ? value : !value;
+        if (on) {
+            this._element.classList.add(this._className);
+        } else {
+            this._element.classList.remove(this._className);
+        }
     }
 
     function createLink(parentLink, value) {
