@@ -34,7 +34,8 @@
                 { name: "item1", value: "value1" },
                 { name: "item2", value: "value2" },
                 { name: "item3", value: "value3" },
-            ]
+            ],
+            aClas: "a-class",
         };
         distlink(data)
             .text.select(".text").toText()
@@ -45,9 +46,11 @@
                     .value.select(".value").toText()
                     ;
             })
-            .text.select("[name='text']").withValue()
+            // .text.select("[name='text']").withValue()
             // .text.select(".to-attr").toAttr("href")
             .text.select(".to-attr").toHref()
+            .aClas.select("[name='text']").withValue()
+            .aClas.select(".text").toClass()
             ;
     </script>
 </body>

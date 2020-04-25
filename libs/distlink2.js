@@ -127,10 +127,10 @@
             Object.defineProperty(object, key, {
                 enumerable: true,
                 get: function () {
-                    return link._getValue();
+                    return link.getValue();
                 },
                 set: function (value) {
-                    link._setValue(value);
+                    link.setValue(value);
                 },
             });
             Object.defineProperty(objectLink, key, {
@@ -217,8 +217,8 @@
         this._link = link;
     }
 
-    Item.prototype._propagate = function (source, value) {
-
+    Item.prototype._propagate = function () {
+        this._link._propagate();
     };
 
     const EachPropagation = /** @lends EachPropagation */ function EachPropagation(arrayLink, element, callback) {
@@ -270,11 +270,11 @@
         this._propagations = [];
     }
 
-    PrimLink.prototype._getValue = function () {
+    PrimLink.prototype.getValue = function () {
         return this._value;
     }
 
-    PrimLink.prototype._setValue = function (value) {
+    PrimLink.prototype.setValue = function (value) {
         if (this._value !== value) {
             this._previousValue = this._value;
             this._value = value;
@@ -356,7 +356,7 @@
         this._listener = (function (self) {
             return function (event) {
                 self._handling = true;
-                self._primLink._setValue(event.target.value);
+                self._primLink.setValue(event.target.value);
                 self._handling = false;
             };
         })(this);
@@ -442,6 +442,45 @@
 
     ToAttrPropagation.prototype.propagate = function () {
         this._element.setAttribute(this._attrName, this._primLink._value);
+    }
+
+    PrimLink.prototype.toClass = function () {
+
+        const element = this._assertSelected();
+        const propagations = this._propagations;
+        for (let i = 0; i < propagations.length; i++) {
+            const propagation = propagations[i];
+            // We don't create ToClassPropagation twice that has same element and attrName.
+            if (propagation.constructor === ToClassPropagation
+                && propagation._element === element) {
+                propagation.propagate();
+                return this._parentLink;
+            }
+        }
+
+        const propagation = new ToClassPropagation(this, element);
+        propagation.propagate();
+        propagations.push(propagation);
+        return this._parentLink;
+    };
+
+    const ToClassPropagation = /** @lends ToClassPropagation */ function ToClassPropagation(primLink, element) {
+        this._primLink = primLink;
+        this._element = element;
+        this._previousValue = "";
+    }
+
+    ToClassPropagation.prototype.propagate = function () {
+        const classList = this._element.classList;
+        const previousValue = this._previousValue;
+        if (!isEmptyString(previousValue)) {
+            classList.remove(previousValue);
+        }
+        const value = this._primLink.getValue();
+        if (!isEmptyString(value)) {
+            classList.add(value);
+        }
+        this._previousValue = value;
     }
 
     function createLink(parentLink, value) {
