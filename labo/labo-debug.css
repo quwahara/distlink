@@ -19,3 +19,7 @@
     /* debug: show off borders */
     border: 1px solid #6ac;
 }
+
+.text.debug {
+    background-color: blue;
+}

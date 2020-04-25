@@ -13,7 +13,7 @@
 
 <body>
     <div>
-        <div class="text"></div>
+        <div class="text debug"></div>
         <div class="array">
             <div>
                 <span class="name"></span>
@@ -29,7 +29,7 @@
     </div>
     <script>
         const data = {
-            text: "text",
+            text: "lightblue",
             array: [
                 { name: "item1", value: "value1" },
                 { name: "item2", value: "value2" },
@@ -39,7 +39,9 @@
             flip: "on",
         };
         distlink(data)
+            .text.select("[name='text']").withValue()
             .text.select(".text").toText()
+            .text.selectRule(document.styleSheets[1].cssRules[2]).toStyleOf("background-color")
             .array.select(".array").each(function (issue, childElement) {
                 console.log(arguments);
                 issue
@@ -47,12 +49,8 @@
                     .value.select(".value").toText()
                     ;
             })
-            // .text.select("[name='text']").withValue()
-            // .text.select(".to-attr").toAttr("href")
             .text.select(".to-attr").toHref()
-            // .aClas.select("[name='text']").withValue()
             .aClas.select(".text").toClass()
-            .flip.select("[name='text']").withValue()
             .flip.select(".text").turnClassOn("on")
             ;
     </script>

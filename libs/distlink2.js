@@ -78,6 +78,7 @@
     const ObjectLink = /** @lends ObjectLink */ function ObjectLink(parentLink, object) {
 
         this._selected = null;
+        this._selectedRule = null;
         this._props = {};
 
         if (parentLink == null) {
@@ -281,17 +282,6 @@
             this._propagate();
         }
     }
-
-    PrimLink.prototype._assertSelected = function () {
-
-        const selected = this._selected;
-
-        if (!isElementNode(selected)) {
-            throw Error("No ElementNode was selected.");
-        }
-
-        return selected;
-    };
 
     PrimLink.prototype.select = function (queryOrElement) {
 
@@ -527,6 +517,72 @@
         } else {
             this._element.classList.remove(this._className);
         }
+    }
+
+    PrimLink.prototype._assertSelected = function () {
+
+        const selected = this._selected;
+
+        if (!isElementNode(selected)) {
+            throw Error("No ElementNode was selected.");
+        }
+
+        return selected;
+    };
+
+    PrimLink.prototype.selectRule = function (rule) {
+
+        if (rule.constructor !== CSSStyleRule) {
+            throw Error("The argument rule was not CSSStyleRule.");
+        }
+
+        if (rule.type !== CSSRule.STYLE_RULE) {
+            throw Error("The CSSRule type was not STYLE_RULE.");
+        }
+
+        this._rule = rule;
+
+        return this;
+    };
+
+    //TODO Change method name
+    PrimLink.prototype.toStyleOf = function (styleName) {
+        const rule = this._assertRuleAreSelected();
+        const propagations = this._propagations;
+        for (let i = 0; i < propagations.length; i++) {
+            const propagation = propagations[i];
+            // We don't create ToStyleOfPropagation twice 
+            // that has same rule and styleName.
+            if (propagation.constructor === ToStyleOfPropagation
+                && propagation._rule === rule
+                && propagation._styleName === styleName) {
+                propagation.propagate();
+                return this._parentLink;
+            }
+        }
+
+        const propagation = new ToStyleOfPropagation(this, rule, styleName);
+        propagation.propagate();
+        propagations.push(propagation);
+        return this._parentLink;
+    }
+
+    PrimLink.prototype._assertRuleAreSelected = function () {
+        const rule = this._rule;
+        if (isNullOrUndefined(rule)) {
+            throw Error("No CSSStyleRule were selected.");
+        }
+        return rule;
+    };
+
+    const ToStyleOfPropagation = /** @lends ToStyleOfPropagation */ function ToStyleOfPropagation(primLink, rule, styleName) {
+        this._primLink = primLink;
+        this._rule = rule;
+        this._styleName = styleName;
+    }
+
+    ToStyleOfPropagation.prototype.propagate = function () {
+        this._rule.style[this._styleName] = this._primLink.getValue();
     }
 
     function createLink(parentLink, value) {
