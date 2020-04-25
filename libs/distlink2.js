@@ -162,6 +162,15 @@
         return this;
     }
 
+    const Item = /** @lends Item */ function Item(arrayLink, link) {
+        this._arrayLink = arrayLink;
+        this._link = link;
+    }
+
+    Item.prototype._propagate = function () {
+        this._link._propagate();
+    };
+
     ArrayLink.prototype.select = function (queryOrElement) {
 
         if (isString(queryOrElement)) {
@@ -199,27 +208,6 @@
         this._propagations.push(propagation);
 
         return this._parentLink;
-    };
-
-    ArrayLink.prototype._propagate = function (source, value) {
-
-        if (source !== this && this._value !== value) {
-            this._value = value;
-        }
-
-        for (let i = 0; i < this._items.length; ++i) {
-            const item = this._items[i];
-            item._propagate();
-        }
-    };
-
-    const Item = /** @lends Item */ function Item(arrayLink, link) {
-        this._arrayLink = arrayLink;
-        this._link = link;
-    }
-
-    Item.prototype._propagate = function () {
-        this._link._propagate();
     };
 
     const EachPropagation = /** @lends EachPropagation */ function EachPropagation(arrayLink, element, callback) {
@@ -261,6 +249,12 @@
             }
 
             callback.call(arrayLink, link, childElement, index, element);
+        }
+    }
+
+    ArrayLink.prototype._propagate = function () {
+        for (let i = 0; i < this._propagations.length; i++) {
+            this._propagations[i].propagate();
         }
     }
 
@@ -388,12 +382,6 @@
 
     ToTextPropagation.prototype.propagate = function () {
         this._element.textContent = this._primLink._value;
-    }
-
-    PrimLink.prototype._propagate = function () {
-        for (let i = 0; i < this._propagations.length; i++) {
-            this._propagations[i].propagate();
-        }
     }
 
     PrimLink.prototype.toSrc = function () {
@@ -583,6 +571,12 @@
 
     ToStyleOfPropagation.prototype.propagate = function () {
         this._rule.style[this._styleName] = this._primLink.getValue();
+    }
+
+    PrimLink.prototype._propagate = function () {
+        for (let i = 0; i < this._propagations.length; i++) {
+            this._propagations[i].propagate();
+        }
     }
 
     PrimLink.prototype._destroy = function () {
