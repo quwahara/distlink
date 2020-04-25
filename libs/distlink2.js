@@ -332,8 +332,11 @@
         const propagations = this._propagations;
         for (let i = 0; i < propagations.length; i++) {
             const propagation = propagations[i];
-            // We don't create ToTextPropagation twice that has same element.
-            if (propagation.constructor === WithValuePropagation && propagation._input === input) {
+            // We don't create WithValuePropagation twice that has same input and eventType.
+            if (propagation.constructor === WithValuePropagation
+                && propagation._input === input
+                && propagation._eventType === eventType
+            ) {
                 propagation.propagate();
                 return this._parentLink;
             }
@@ -401,6 +404,44 @@
         for (let i = 0; i < this._propagations.length; i++) {
             this._propagations[i].propagate();
         }
+    }
+
+    PrimLink.prototype.toSrc = function () {
+        return this.toAttr("src");
+    }
+
+    PrimLink.prototype.toHref = function () {
+        return this.toAttr("href");
+    }
+
+    PrimLink.prototype.toAttr = function (attrName) {
+        const element = this._assertSelected();
+        const propagations = this._propagations;
+        for (let i = 0; i < propagations.length; i++) {
+            const propagation = propagations[i];
+            // We don't create ToAttrPropagation twice that has same element and attrName.
+            if (propagation.constructor === ToAttrPropagation
+                && propagation._element === element
+                && propagation._attrName === attrName) {
+                propagation.propagate();
+                return this._parentLink;
+            }
+        }
+
+        const propagation = new ToAttrPropagation(this, element, attrName);
+        propagation.propagate();
+        propagations.push(propagation);
+        return this._parentLink;
+    };
+
+    const ToAttrPropagation = /** @lends ToAttrPropagation */ function ToAttrPropagation(primLink, element, attrName) {
+        this._primLink = primLink;
+        this._element = element;
+        this._attrName = attrName;
+    }
+
+    ToAttrPropagation.prototype.propagate = function () {
+        this._element.setAttribute(this._attrName, this._primLink._value);
     }
 
     function createLink(parentLink, value) {

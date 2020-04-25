@@ -23,6 +23,9 @@
         <div>
             <input type="text" name="text">
         </div>
+        <div>
+            <a class="to-attr">to-attr</a>
+        </div>
     </div>
     <script>
         const data = {
@@ -43,6 +46,8 @@
                     ;
             })
             .text.select("[name='text']").withValue()
+            // .text.select(".to-attr").toAttr("href")
+            .text.select(".to-attr").toHref()
             ;
     </script>
 </body>
