@@ -165,10 +165,15 @@
     const Item = /** @lends Item */ function Item(arrayLink, link) {
         this._arrayLink = arrayLink;
         this._link = link;
+        this._linkedElements = [];
     }
 
-    Item.prototype._propagate = function () {
-        this._link._propagate();
+    Item.prototype.addLinkedElement = function (element) {
+        this._linkedElements.push(element);
+    };
+
+    Item.prototype.propagate = function () {
+        this._link.propagate();
     };
 
     Item.prototype._destroy = function () {
@@ -220,47 +225,113 @@
         this._callback = callback;
         this._firstElementChild = element.firstElementChild ? element.firstElementChild.cloneNode(true) : null;
         removeChildren(this._element);
-        this._childElements = [];
+        this._previousEachItemPropagations = [];
     }
 
     EachPropagation.prototype.propagate = function () {
 
-        const items = this._arrayLink._items;
-        const callback = this._callback;
-        const arrayLink = this._arrayLink;
-        for (let index = 0; index < items.length; index++) {
+        const element = this._element;
+        const previousEachItemPropagations = this._previousEachItemPropagations;
 
-            // Create and fill child element array if length of child element array is less than index
-            const childElements = this._childElements;
-            const firstElementChild = this._firstElementChild;
-            const element = this._element;
-            while (childElements.length <= index) {
-                let childElement = null;
-                if (childElements.length === index) {
-                    if (firstElementChild) {
-                        childElement = firstElementChild.cloneNode(true);
-                        element.appendChild(childElement);
-                    }
+        // Clear previous appended elements
+        for (let index = 0; index < previousEachItemPropagations.length; index++) {
+            const previousEachItemPropagation = previousEachItemPropagations[index];
+            if (previousEachItemPropagation._itemElement) {
+                try {
+                    element.removeChild(previousEachItemPropagation._itemElement);
+                } catch (error) {
+                    // ignore error                    
                 }
-                childElements.push(childElement);
             }
-
-            let childElement = childElements[index];
-
-            const link = items[index]._link;
-            if (childElement) {
-                link.select(childElement);
-            }
-
-            callback.call(arrayLink, link, childElement, index, element);
         }
+
+        const items = this._arrayLink._items;
+        const newEachItemPropagations = [];
+        newEachItemPropagations.length = items.length;
+
+        for (let i = 0; i < items.length; i++) {
+            const item = items[i];
+
+            // Find previousEachItemPropagation that is having same item
+            let index = -1;
+            for (let j = 0; j < previousEachItemPropagations.length; j++) {
+                const previousEachItemPropagation = previousEachItemPropagations[j];
+                if (previousEachItemPropagation._item === item) {
+                    index = j;
+                    break;
+                }
+            }
+
+            let eachItemPropagation = null;
+            if (index >= 0) {
+                // reuse previousEachItemPropagation if it's found
+                eachItemPropagation = previousEachItemPropagations[index];
+                // remove found previousEachItemPropagation to destroy unuse EachItemPropagation later
+                previousEachItemPropagations.splice(index, 1);
+            } else {
+                // create EachItemPropagation if it's not found
+                let itemElement = null;
+                if (this._firstElementChild) {
+                    itemElement = this._firstElementChild.cloneNode(true);
+                }
+                eachItemPropagation = new EachItemPropagation(this, item, itemElement);
+            }
+
+            // append a child element for the item
+            const itemElement = eachItemPropagation._itemElement;
+            if (itemElement) {
+                element.appendChild(itemElement);
+            }
+
+            // keep eachItemPropagation to propagate later
+            newEachItemPropagations[i] = eachItemPropagation;
+        }
+
+        // propagae eachItem
+        for (let index = 0; index < newEachItemPropagations.length; index++) {
+            const eachItemPropagation = newEachItemPropagations[index];
+            eachItemPropagation.propagate();
+        }
+
+        // destroy unuse EachItemPropagation
+        for (let index = 0; index < previousEachItemPropagations.length; index++) {
+            previousEachItemPropagations[index]._destroy();
+        }
+
+        // keep EachItemPropagations for next propagations
+        this._previousEachItemPropagations = newEachItemPropagations;
+    }
+
+    const EachItemPropagation = /** @lends EachItemPropagation */ function EachItemPropagation(eachPropagation, item, itemElement) {
+        this._eachPropagation = eachPropagation;
+        this._item = item;
+        this._itemElement = itemElement;
+    }
+
+    EachItemPropagation.prototype.propagate = function () {
+        const ep = this._eachPropagation;
+        const item = this._item;
+        const link = this._item._link;
+        const itemElement = this._itemElement;
+
+        if (itemElement) {
+            link.select(itemElement);
+        }
+
+        ep._callback.call(ep._arrayLink, link, itemElement, item._index, ep._element);
+    }
+
+    EachItemPropagation.prototype._destroy = function () {
+        this._item._destroy();
     }
 
     EachPropagation.prototype._destroy = function () {
-        removeChildren(this._element);
+        for (let index = 0; index < this._previousEachItemPropagations.length; index++) {
+            this._previousEachItemPropagations[index]._destroy();
+        }
     }
 
-    ArrayLink.prototype._propagate = function () {
+    ArrayLink.prototype.propagate = function () {
         for (let i = 0; i < this._propagations.length; i++) {
             this._propagations[i].propagate();
         }
