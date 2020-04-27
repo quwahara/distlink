@@ -158,13 +158,78 @@
 
     ArrayLink.prototype.push = function (value) {
         this._array.push(value);
-        this._items.push(new Item(this, createLink(this, value)));
+        this._items.push(new Item(this, createLink(this, value), this._items.length));
+        this.propagate();
         return this;
     }
 
-    const Item = /** @lends Item */ function Item(arrayLink, link) {
+    ArrayLink.prototype.remove = function (index, count) {
+
+        // validations and aborts
+
+        const items = this._items;
+
+        if (items.length === 0) {
+            return this;
+        }
+
+        if (!isInteger(index)) {
+            return this;
+        }
+
+        if (index < 0 || items.length <= index) {
+            return this;
+        }
+
+        if (isNullOrUndefined(count)) {
+            count = 1;
+        } else {
+            if (!isInteger(count)) {
+                return this;
+            }
+        }
+
+        if (count <= 0) {
+            return this;
+        }
+
+        //
+        // process
+        //
+
+        // Confirm end index
+        let end = index + count;
+        if (end > items.length) {
+            end = items.length;
+        }
+
+        // Call _destroy for each items
+        for (let i = end - 1; i >= index; --i) {
+            if (items[i]._destroy) {
+                items[i]._destroy();
+            }
+        }
+
+        // Release items
+        items.splice(index, count);
+        this._value.splice(index, count);
+
+        // update item.index
+        if (items.length > 0) {
+            for (let i = index - 1; i < items.length; i++) {
+                items[i].index = i;
+            }
+        }
+
+        this.propagate();
+
+        return this;
+    };
+
+    const Item = /** @lends Item */ function Item(arrayLink, link, index) {
         this._arrayLink = arrayLink;
         this._link = link;
+        this.index = index;
         this._linkedElements = [];
     }
 
@@ -293,11 +358,6 @@
             eachItemPropagation.propagate();
         }
 
-        // destroy unuse EachItemPropagation
-        for (let index = 0; index < previousEachItemPropagations.length; index++) {
-            previousEachItemPropagations[index]._destroy();
-        }
-
         // keep EachItemPropagations for next propagations
         this._previousEachItemPropagations = newEachItemPropagations;
     }
@@ -318,17 +378,7 @@
             link.select(itemElement);
         }
 
-        ep._callback.call(ep._arrayLink, link, itemElement, item._index, ep._element);
-    }
-
-    EachItemPropagation.prototype._destroy = function () {
-        // do nothing
-    }
-
-    EachPropagation.prototype._destroy = function () {
-        for (let index = 0; index < this._previousEachItemPropagations.length; index++) {
-            this._previousEachItemPropagations[index]._destroy();
-        }
+        ep._callback.call(ep._arrayLink, link, itemElement, item.index, ep._element);
     }
 
     ArrayLink.prototype.propagate = function () {
