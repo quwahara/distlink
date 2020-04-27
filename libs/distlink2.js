@@ -322,7 +322,7 @@
     }
 
     EachItemPropagation.prototype._destroy = function () {
-        this._item._destroy();
+        // do nothing
     }
 
     EachPropagation.prototype._destroy = function () {
@@ -338,17 +338,16 @@
     }
 
     ArrayLink.prototype._destroy = function () {
-
-        for (let index = 0; index < items.length; index++) {
-            items[index]._destroy();
-        }
-
         const propagations = this._propagations;
         for (let i = 0; i < propagations.length; i++) {
             const propagation = propagations[i];
             if (propagation._destroy) {
                 propagation._destroy();
             }
+        }
+        const items = this._items;
+        for (let index = 0; index < items.length; index++) {
+            items[index]._destroy();
         }
     };
 
