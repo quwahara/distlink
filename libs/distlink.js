@@ -75,211 +75,37 @@
         }
     }
 
-    /** 
-     * Create a new ObjectLink
-     * 
-     * @function    distlink
-     * @param       {object}    object  It is to be an ObjectLink
-     * @returns     {ObjectLink}        Created ObjectLink
-     */
-    const distlink = /** @lends distlink  */ function distlink(object) {
-        return loadObjectLinkByObject(null, null, object);
-    }
+    const ObjectLink = /** @lends ObjectLink */ function ObjectLink(parentLink, object) {
 
-    const _ridDic = {};
-
-    distlink.endsWithPred = function (key) {
-        return (function (key) {
-            return function (target) {
-                if (!isString(target)) { return false; }
-                const index = target.indexOf(key);
-                return index >= 0 && index === (target.length - key.length);
-            };
-        })(key);
-    };
-
-    distlink.csvContainsPred = function (key) {
-        return (function (key) {
-            return function (target) {
-                if (!isString(target)) { return false; }
-                return target.split(/\s*,\s*/g).indexOf(key) >= 0;
-            };
-        })(key);
-    };
-
-    function loadObjectLinkByObject(owner, nameInOwner, object) {
-        if (!isObject(object)) {
-            throw Error("The argument type was not an object.");
-        }
-
-        if (object._rid) {
-            return _ridDic[object._rid];
-        }
-
-        const _rid = defineRidProp(object);
-        const prop = new ObjectLink(owner, nameInOwner, null, null, object);
-        _ridDic[_rid] = prop;
-
-        return prop;
-    }
-
-    function loadArrayLinkByObject(owner, nameInOwner, array) {
-        if (!isArray(array)) {
-            throw Error("The argument type was not an array.");
-        }
-
-        if (array._rid) {
-            return _ridDic[array._rid];
-        }
-
-        const _rid = defineRidProp(array);
-        const prop = new ArrayLink(owner, nameInOwner, null, null, array);
-        _ridDic[_rid] = prop;
-
-        return prop;
-    }
-
-    function loadObjectLinkByArray(owner, indexAtOwner, object) {
-        if (!isObject(object)) {
-            throw Error("The argument type was not an object.");
-        }
-
-        if (object._rid) {
-            return _ridDic[object._rid];
-        }
-
-        const _rid = defineRidProp(object);
-        const objectLink = new ObjectLink(null, null, owner, indexAtOwner, object);
-        _ridDic[_rid] = objectLink;
-
-        return objectLink;
-    }
-
-    function loadArrayLinkByArray(owner, indexAtOwner, array) {
-        if (!isArray(array)) {
-            throw Error("The argument type was not an array.");
-        }
-
-        if (array._rid) {
-            return _ridDic[array._rid];
-        }
-
-        const _rid = defineRidProp(array);
-        const arrayLink = new ArrayLink(null, null, owner, indexAtOwner, array);
-        _ridDic[_rid] = arrayLink;
-
-        return arrayLink;
-    }
-
-    function defineRidProp(target) {
-
-        let _rid = rid();
-
-        while (_ridDic[_rid]) {
-            _rid = rid();
-        }
-
-        Object.defineProperty(target, "_rid", {
-            enumerable: false,
-            writable: false,
-            value: _rid
-        });
-
-        return _rid;
-    }
-
-    var RID_MIN = 100000000000000;
-    var RID_MAX = RID_MIN * 10 - 1;
-
-    function rid() {
-        return "_" + (Math.floor(Math.random() * (RID_MAX - RID_MIN + 1)) + RID_MIN).toString(10);
-    }
-
-    /**
-     * Creates a new ObjectLink.
-     * 
-     * @class ObjectLink
-     * @param   {?object}       owner           An object that has a property of object.
-     * @param   {?string}       nameInOwner     Property name that has the object.
-     * @param   {?ArrayLink}    arrayLink       An ArrayLink that has an item of primitive value
-     * @param   {?number}       indexAtArray    Index at the original array for ArrayObjec
-     * @param   {object}        object          The value of property.
-     */
-    const ObjectLink = /** @lends ObjectLink */ function ObjectLink(owner, nameInOwner, arrayLink, indexAtArray, object) {
-        this._owner = owner;
-        this._nameInOwner = nameInOwner;
-        /** @member {Object} Original object */
-        this._object = object;
         this._selected = null;
-        this._propDic = {};
-        this._and = null;
+        this._selectedRule = null;
+        this._props = {};
 
-        Object.defineProperty(this, "and", {
-            enumerable: false,
-            get: (function (self) {
-                return function () {
-                    return self._and;
-                };
-            })(this)
-        });
+        if (parentLink == null) {
+            // It's OK.
+        }
+        else if (parentLink.constructor !== this) {
+            // TODO
+        }
 
-        // Create xxxLink for each properties
+        if (!isObject(object)) {
+            // TODO
+        }
+
+        this._parentLink = parentLink;
+        this._object = object;
+
         for (let key in object) {
-            const value = object[key];
-            let prop;
-            if (isNullOrUndefined(value) || isPrimitive(value)) {
-                prop = new PrimitiveLink(this, key, null, null);
+            if (!object.hasOwnProperty(key)) {
+                continue;
             }
-            else if (isObject(value)) {
-                prop = loadObjectLinkByObject(object, key, value);
-            }
-            else if (isArray(value)) {
-                prop = loadArrayLinkByObject(this, key, value);
-            }
-            else {
-                throw Error("Unsupported type");
-            }
-            this._propDic[key] = prop;
-
-            // Define property of xxxLink to this 
-            (function (self, key, prop) {
-                Object.defineProperty(self, key, {
-                    enumerable: true,
-                    get: function () {
-                        self._and = prop;
-                        return prop;
-                    }
-                });
-            })(this, key, prop);
+            this.put(key, object[key]);
         }
+    }
 
-        // Create getter/setter for original object
-        if (isObject(this._owner) && isString(nameInOwner)) {
-            (function (self) {
-                Object.defineProperty(self._owner, nameInOwner, {
-                    enumerable: true,
-                    get: function () {
-                        return self._object;
-                    },
-                    set: function (value) {
-                        if (isNullOrUndefined(value)) {
-                            for (let key in self._propDic) {
-                                self._propDic[key]._propagate(self, null);
-                            }
-                        }
-                        else if (isObject(value)) {
-                            for (let key in self._propDic) {
-                                self._propDic[key]._propagate(self, value[key]);
-                            }
-                        }
-                        else {
-                            throw Error("Value type was unmatch");
-                        }
-                    }
-                });
-            })(this);
-        }
-    };
+    ObjectLink.prototype.put = function (key, value) {
+        this._props[key] = new Prop(this, createLink(this, value), key);
+    }
 
     ObjectLink.prototype.select = function (queryOrElement) {
 
@@ -296,261 +122,54 @@
         return this;
     };
 
-    ObjectLink.prototype._propagate = function (source, value) {
-
-        if (source === this) {
-            return;
-        }
-
-        if (isNullOrUndefined(value)) {
-            for (let key in this._propDic) {
-                this._propDic[key]._propagate(this, null);
-            }
-        }
-        else if (isObject(value)) {
-            for (let key in this._propDic) {
-                this._propDic[key]._propagate(this, value[key]);
-            }
-        }
-        else {
-            throw Error("Value type was unmatch");
-        }
-    }
-
-    ObjectLink.prototype._destroy = function () {
-
-        const keys = Object.keys(this._propDic);
-        for (let i = 0; i < keys.length; ++i) {
-            this._propDic[keys[i]]._destroy();
-        }
-
-        return this;
-    };
-
-    /**
-     * Creates a new ArrayLink.
-     * 
-     * @class ArrayLink
-     * @param   {ObjectLink}    objectLink      An ObjectLink that has a property of array
-     * @param   {string}        nameInObject    Property name that has the array
-     * @param   {ArrayLink}     arrayLink       An ArrayLink that has an item of primitive value
-     * @param   {number}        indexAtArray    Index at the original array for ArrayObjec
-     * @param   {array}         array           The array to be linked.
-     */
-    const ArrayLink = /** @lends ArrayLink */ function ArrayLink(objectLink, nameInObject, arrayLink, indexAtArray, array) {
-
-        /** @member {array} Original array */
-        this._value = array;
-
-        if (objectLink) {
-            this._objectLink = objectLink;
-            this._nameInObject = nameInObject;
-
-            Object.defineProperty(this._objectLink._object, this._nameInObject, {
+    const Prop = /** @lends Prop */ function Prop(objectLink, link, key) {
+        this._link = link;
+        (function (object, link) {
+            Object.defineProperty(object, key, {
                 enumerable: true,
-                get: (function (self) {
-                    return function () {
-                        return self._value;
-                    };
-                })(this),
-                set: (function (self) {
-                    return function (value) {
-                        self._value = value;
-                        self._propagate(self, value);
-                    };
-                })(this),
+                get: function () {
+                    return link.getValue();
+                },
+                set: function (value) {
+                    link.setValue(value);
+                },
             });
-        }
-        else if (arrayLink) {
-            this._arrayLink = arrayLink;
-            this._indexAtArray = indexAtArray;
-        }
-
-        if (isNullOrUndefined(objectLink._object[nameInObject])) {
-            this._previousValue = "";
-        } else {
-            this._previousValue = "" + objectLink._object[nameInObject];
-        }
-        /** @member {array} XxxLiks for items in this._value array */
-        this.links = [];
-
-        // Create xxxLink for each items
-        for (let i = 0; i < this._value.length; ++i) {
-            const item = this._value[i];
-            this._itemToXxxLink(i, item);
-        }
-
-        this._selected = null;
-
-        // Holding contents are:
-        // {
-        //    callback: <function>,
-        //    selectedElement: <ElementNode>
-        // }
-        this._eachContexts = [];
+            Object.defineProperty(objectLink, key, {
+                enumerable: true,
+                get: function () {
+                    return link;
+                },
+            });
+        })(objectLink._object, link);
     }
 
-    ArrayLink.prototype.push = function (item) {
-        this._value.push(item);
-        const index = this._value.length - 1;
-        this._itemToXxxLink(index, item);
-        this._propagateItem(this, index, item);
-        return this;
+    const ArrayLink = /** @lends ArrayLink */ function ArrayLink(parentLink, array) {
+        this._parentLink = parentLink;
+        this._array = array;
+        this._items = [];
+        this._propagations = [];
+
+        const arrayTmp = array.splice(0, array.length);
+
+        for (let i = 0; i < arrayTmp.length; i++) {
+            this.push(arrayTmp[i]);
+        }
     }
 
-    ArrayLink.prototype._itemToXxxLink = function (index, item) {
-
-        let xxxLink;
-        if (isNullOrUndefined(item) || isPrimitive(item)) {
-            xxxLink = new PrimitiveLink(null, null, this, index);
-        }
-        else if (isObject(item)) {
-            xxxLink = loadObjectLinkByArray(this, index, item);
-        }
-        else if (isArray(item)) {
-            xxxLink = loadArrayLinkByArray(this, index, item);
-        }
-        else {
-            throw Error("Unsupported type");
-        }
-
-        this.links.push(xxxLink);
-
+    ArrayLink.prototype.push = function (value) {
+        this._array.push(value);
+        this._items.push(new Item(this, createLink(this, value), this._items.length));
+        this.propagate();
         return this;
     }
-
-    ArrayLink.prototype.select = function (queryOrElement) {
-
-        if (isString(queryOrElement)) {
-            this._selected = document.querySelector(queryOrElement);
-        }
-        else if (isElementNode(queryOrElement)) {
-            this._selected = queryOrElement;
-        }
-        else {
-            throw Error("The queryOrElement requires query string or ElementNode.");
-        }
-
-        return this;
-    };
-
-    /**
-     * This callback is called by each items in the array when ArrayLink propagates its items.
-     * It is cloned automatically that if the selected element has a child element.
-     * 
-     * @callback eachCallback
-     * @param {*}           item            An item that is one of in the array.
-     *                                      The type of item is ObjectLink if the type of original item is an object.
-     * @param {?element}    childElement    A cloned element that is first child elemet under the selected element.
-     *                                      It will be null if the selected element has no child element.
-     * @param {number}      index           The index is integer of iteration over the array. It begins from zero.
-     * @param {element}     parentElement   The selected element.
-     * @return {*}                          Breaks the iteratoin if you returns false.
-     */
-
-    /**
-     * Registers an callback function that is called by propagation.
-     * 
-     * @name ArrayLink#each
-     * @function
-     * @param {eachCallback} callback Calls it back.
-     */
-    ArrayLink.prototype.each = function (callback) {
-
-        if (!isFunction(callback)) {
-            throw Error("The callback was not a function.");
-        }
-
-        if (!isElementNode(this._selected)) {
-            throw Error("No ElementNode was selected.");
-        }
-
-        const context = {
-            callback: callback,
-            selectedElement: this._selected,
-            firstElementChild: this._selected.firstElementChild ? this._selected.firstElementChild.cloneNode(true) : null,
-            childElements: [],
-        };
-
-        removeChildren(context.selectedElement);
-
-        this._eachContexts.push(context);
-
-        this._propagate(null, this._value);
-
-        return this._objectLink;
-    };
-
-    ArrayLink.prototype._propagate = function (source, value) {
-
-        if (source !== this && this._value !== value) {
-            this._value = value;
-        }
-
-        for (let i = 0; i < this._eachContexts.length; ++i) {
-            const context = this._eachContexts[i];
-            for (let j = 0; j < this.links.length; ++j) {
-                this._propagateItem(this, j, value[j]);
-            }
-        }
-    };
-
-    ArrayLink.prototype._propagateItem = function (source, index, value) {
-
-        if (!isInteger(index)) {
-            throw Error("The index was not integer.")
-        }
-
-        if (index < 0) {
-            throw Error("The index was negative.")
-        }
-
-        if (index >= this.links.length) {
-            throw Error("The index was out of range.")
-        }
-
-        const xxxLink = this.links[index];
-
-        if (source !== xxxLink) {
-            xxxLink._propagate(source, value);
-        }
-
-        for (let i = 0; i < this._eachContexts.length; ++i) {
-            const context = this._eachContexts[i];
-
-            // Create and fill child element array if length of child element array is less than index
-            while (context.childElements.length <= index) {
-                let childElement;
-                if (context.childElements.length === index) {
-                    if (context.firstElementChild) {
-                        childElement = context.firstElementChild.cloneNode(true);
-                        context.selectedElement.appendChild(childElement);
-                    }
-                    else {
-                        childElement = null;
-                    }
-                } else {
-                    childElement = null;
-                }
-                context.childElements.push(childElement);
-            }
-
-            let childElement = context.childElements[index];
-
-            if (childElement) {
-                xxxLink.select(childElement);
-            }
-
-            context.callback.call(this, xxxLink, childElement, index, context.selectedElement);
-        }
-
-    };
 
     ArrayLink.prototype.remove = function (index, count) {
 
         // validations and aborts
 
-        if (this.links.length === 0) {
+        const items = this._items;
+
+        if (items.length === 0) {
             return this;
         }
 
@@ -558,7 +177,7 @@
             return this;
         }
 
-        if (index < 0 || this.links.length <= index) {
+        if (index < 0 || items.length <= index) {
             return this;
         }
 
@@ -580,156 +199,231 @@
 
         // Confirm end index
         let end = index + count;
-        if (end > this.links.length) {
-            end = this.links.length;
+        if (end > items.length) {
+            end = items.length;
         }
 
         // Call _destroy for each items
-        for (let i = end - 1; i >= 0; --i) {
-            if (this.links[i]._destroy) {
-                this.links[i]._destroy();
-            }
-        }
-
-        // Remove relational elements
-        for (let i = 0; i < this._eachContexts.length; ++i) {
-            const context = this._eachContexts[i];
-            const removingElements = context.childElements.splice(index, end);
-            for (let j = removingElements.length - 1; j >= 0; --j) {
-                const removingElement = removingElements[j];
-                if (removingElement) {
-                    context.selectedElement.removeChild(removingElement);
-                }
+        for (let i = end - 1; i >= index; --i) {
+            if (items[i]._destroy) {
+                items[i]._destroy();
             }
         }
 
         // Release items
-        this.links.splice(index, count);
+        items.splice(index, count);
         this._value.splice(index, count);
 
+        // update item.index
+        if (items.length > 0) {
+            for (let i = index - 1; i < items.length; i++) {
+                items[i].index = i;
+            }
+        }
+
+        this.propagate();
+
         return this;
     };
 
-    ArrayLink.prototype._destroy = function () {
-        this.remove(0, this.links.length);
-        return this;
+    const Item = /** @lends Item */ function Item(arrayLink, link, index) {
+        this._arrayLink = arrayLink;
+        this._link = link;
+        this.index = index;
+        this._linkedElements = [];
     }
 
-    /**
-     * Creates a new PrimitiveLink.
-     * 
-     * @class PrimitiveLink
-     * @param {ObjectLink} objectLink An ObjectLink that has a property of primitive value
-     * @param {string} nameInObject Property name that has the ObjectLink
-     * @param {ArrayLink} arrayLink An ArrayLink that has an item of primitive value
-     * @param {number} indexAtArray Index at the original array for ArrayObjec
-     */
-    const PrimitiveLink = /** @lends PrimitiveLink */ function PrimitiveLink(objectLink, nameInObject, arrayLink, indexAtArray) {
-        this._objectLink = objectLink;
-        this._nameInObject = nameInObject;
-        this._arrayLink = arrayLink;
-        this._indexAtArray = indexAtArray;
-
-        if (this._objectLink) {
-            this._value = this._objectLink._object[this._nameInObject];
-
-            const getter = (function (self) {
-                return function () {
-                    return self._value;
-                };
-            })(this);
-
-            const setter = (function (self) {
-                return function (value) {
-                    self._value = value;
-                    self._propagate(self, value);
-                };
-            })(this);
-
-            Object.defineProperty(objectLink._object, nameInObject, {
-                enumerable: true,
-                get: getter,
-                set: setter,
-            });
-
-            /** @property {(boolean|number|string)} value Accessor of associated property value */
-            Object.defineProperty(this, "value", {
-                enumerable: false,
-                get: getter,
-                set: setter,
-            });
-        }
-        else if (this._arrayLink) {
-            this._value = this._arrayLink._value[this._indexAtArray];
-        }
-
-        if (isNullOrUndefined(objectLink._object[nameInObject])) {
-            this._previousValue = "";
-        } else {
-            this._previousValue = "" + objectLink._object[nameInObject];
-        }
-        this._selected = null;
-        this._rules = null;
-
-        // Holding contents are:
-        // key = eventType
-        // value = {
-        //    listener: <function>,
-        //    inputs: [<input>]
-        // }
-        this._listenerContexts = {};
-
-        // Holding contents are:
-        //    [<ElementNode>]
-        this._toTextElements = [];
-
-        // Holding contents are:
-        // key = attrName
-        // value = {
-        //    attrName: <attrName:string>,
-        //    elements: [<ElementNode>]
-        // }
-        this._toAttrContexts = {};
-
-        // Holding contents are:
-        //    <ElementNode>
-        this._toClassElements = [];
-
-        // Holding contents are:
-        // key = className + ("_on" | "_off")
-        // value = {
-        //    className: <className:string>,
-        //    onOrOff: <onOrOff:boolean>,
-        //    elements: [<ElementNode>]
-        // }
-        this._turnClassContexts = {};
-
-        // Holding contents are:
-        // [
-        //    {
-        //      rule: <CSSStyleRule>,
-        //      styleName: <styleName:String>
-        //    }
-        // ]
-        this._toStyleOfRuleAndStyleNames = [];
-
+    Item.prototype.addLinkedElement = function (element) {
+        this._linkedElements.push(element);
     };
 
-    PrimitiveLink.prototype._assertSelected = function () {
+    Item.prototype.propagate = function () {
+        this._link.propagate();
+    };
 
-        const selected = this._selected;
+    Item.prototype._destroy = function () {
+        this._link._destroy();
+    };
 
-        if (!isElementNode(selected)) {
+    ArrayLink.prototype.select = function (queryOrElement) {
+
+        if (isString(queryOrElement)) {
+            this._selected = document.querySelector(queryOrElement);
+        }
+        else if (isElementNode(queryOrElement)) {
+            this._selected = queryOrElement;
+        }
+        else {
+            throw Error("The queryOrElement requires query string or ElementNode.");
+        }
+
+        return this;
+    };
+
+    /**
+     * Registers an callback function that is called by propagation.
+     * 
+     * @name ArrayLink#each
+     * @function
+     * @param {eachCallback} callback Calls it back.
+     */
+    ArrayLink.prototype.each = function (callback) {
+
+        if (!isFunction(callback)) {
+            throw Error("The callback was not a function.");
+        }
+
+        if (!isElementNode(this._selected)) {
             throw Error("No ElementNode was selected.");
         }
 
-        return selected;
+        const propagation = new EachPropagation(this, this._selected, callback);
+        propagation.propagate();
+        this._propagations.push(propagation);
+
+        return this._parentLink;
     };
 
-    PrimitiveLink.prototype.select = function (queryOrElement) {
+    const EachPropagation = /** @lends EachPropagation */ function EachPropagation(arrayLink, element, callback) {
+        this._arrayLink = arrayLink;
+        this._element = element;
+        this._callback = callback;
+        this._firstElementChild = element.firstElementChild ? element.firstElementChild.cloneNode(true) : null;
+        removeChildren(this._element);
+        this._previousEachItemPropagations = [];
+    }
+
+    EachPropagation.prototype.propagate = function () {
+
+        const element = this._element;
+        const previousEachItemPropagations = this._previousEachItemPropagations;
+
+        // Clear previous appended elements
+        for (let index = 0; index < previousEachItemPropagations.length; index++) {
+            const previousEachItemPropagation = previousEachItemPropagations[index];
+            if (previousEachItemPropagation._itemElement) {
+                try {
+                    element.removeChild(previousEachItemPropagation._itemElement);
+                } catch (error) {
+                    // ignore error                    
+                }
+            }
+        }
+
+        const items = this._arrayLink._items;
+        const newEachItemPropagations = [];
+        newEachItemPropagations.length = items.length;
+
+        for (let i = 0; i < items.length; i++) {
+            const item = items[i];
+
+            // Find previousEachItemPropagation that is having same item
+            let index = -1;
+            for (let j = 0; j < previousEachItemPropagations.length; j++) {
+                const previousEachItemPropagation = previousEachItemPropagations[j];
+                if (previousEachItemPropagation._item === item) {
+                    index = j;
+                    break;
+                }
+            }
+
+            let eachItemPropagation = null;
+            if (index >= 0) {
+                // reuse previousEachItemPropagation if it's found
+                eachItemPropagation = previousEachItemPropagations[index];
+                // remove found previousEachItemPropagation to destroy unuse EachItemPropagation later
+                previousEachItemPropagations.splice(index, 1);
+            } else {
+                // create EachItemPropagation if it's not found
+                let itemElement = null;
+                if (this._firstElementChild) {
+                    itemElement = this._firstElementChild.cloneNode(true);
+                }
+                eachItemPropagation = new EachItemPropagation(this, item, itemElement);
+            }
+
+            // append a child element for the item
+            const itemElement = eachItemPropagation._itemElement;
+            if (itemElement) {
+                element.appendChild(itemElement);
+            }
+
+            // keep eachItemPropagation to propagate later
+            newEachItemPropagations[i] = eachItemPropagation;
+        }
+
+        // propagae eachItem
+        for (let index = 0; index < newEachItemPropagations.length; index++) {
+            const eachItemPropagation = newEachItemPropagations[index];
+            eachItemPropagation.propagate();
+        }
+
+        // keep EachItemPropagations for next propagations
+        this._previousEachItemPropagations = newEachItemPropagations;
+    }
+
+    const EachItemPropagation = /** @lends EachItemPropagation */ function EachItemPropagation(eachPropagation, item, itemElement) {
+        this._eachPropagation = eachPropagation;
+        this._item = item;
+        this._itemElement = itemElement;
+    }
+
+    EachItemPropagation.prototype.propagate = function () {
+        const ep = this._eachPropagation;
+        const item = this._item;
+        const link = this._item._link;
+        const itemElement = this._itemElement;
+
+        if (itemElement) {
+            link.select(itemElement);
+        }
+
+        ep._callback.call(ep._arrayLink, link, itemElement, item.index, ep._element);
+    }
+
+    ArrayLink.prototype.propagate = function () {
+        for (let i = 0; i < this._propagations.length; i++) {
+            this._propagations[i].propagate();
+        }
+    }
+
+    ArrayLink.prototype._destroy = function () {
+        const propagations = this._propagations;
+        for (let i = 0; i < propagations.length; i++) {
+            const propagation = propagations[i];
+            if (propagation._destroy) {
+                propagation._destroy();
+            }
+        }
+        const items = this._items;
+        for (let index = 0; index < items.length; index++) {
+            items[index]._destroy();
+        }
+    };
+
+    const PrimLink = /** @lends PrimLink */ function PrimLink(parentLink, value) {
+        this._parentLink = parentLink;
+        this._previousValue = undefined;
+        this._value = value;
+        this._propagations = [];
+    }
+
+    PrimLink.prototype.getValue = function () {
+        return this._value;
+    }
+
+    PrimLink.prototype.setValue = function (value) {
+        if (this._value !== value) {
+            this._previousValue = this._value;
+            this._value = value;
+            this._propagate();
+        }
+    }
+
+    PrimLink.prototype.select = function (queryOrElement) {
 
         if (isString(queryOrElement)) {
-            let scopeNode = this._objectLink._selected || document;
+            let scopeNode = this._parentLink._selected || document;
             this._selected = scopeNode.querySelector(queryOrElement);
         }
         else if (isElementNode(queryOrElement)) {
@@ -742,7 +436,7 @@
         return this;
     };
 
-    PrimitiveLink.prototype.withValue = function (eventType) {
+    PrimLink.prototype.withValue = function (eventType) {
 
         if (isNullOrUndefined(eventType)) {
             eventType = "change";
@@ -762,148 +456,212 @@
             throw Error("Selected NodeElement was not an input, select nor textarea.");
         }
 
-        let context = this._listenerContexts[eventType];
-        if (isNullOrUndefined(context)) {
-            context = {
-                listener: (function (self) {
-                    return function (event) {
-                        self._propagate(event.target, event.target.value);
-                    };
-                })(this),
-                inputs: [],
+        const propagations = this._propagations;
+        for (let i = 0; i < propagations.length; i++) {
+            const propagation = propagations[i];
+            // We don't create WithValuePropagation twice that has same input and eventType.
+            if (propagation.constructor === WithValuePropagation
+                && propagation._input === input
+                && propagation._eventType === eventType
+            ) {
+                propagation.propagate();
+                return this._parentLink;
+            }
+        }
+
+        const propagation = new WithValuePropagation(this, input, eventType);
+        propagation.propagate();
+        propagations.push(propagation);
+        return this._parentLink;
+    }
+
+    const WithValuePropagation = /** @lends WithValuePropagation */ function WithValuePropagation(primLink, input, eventType) {
+        this._primLink = primLink;
+        this._input = input;
+        this._eventType = eventType;
+        this._handling = false;
+        this._listener = (function (self) {
+            return function (event) {
+                self._handling = true;
+                self._primLink.setValue(event.target.value);
+                self._handling = false;
             };
-            this._listenerContexts[eventType] = context;
-        }
-
-        // const input = this._selected;
-        const index = context.inputs.indexOf(input);
-
-        // The input of argument has been bound.
-        if (index >= 0) {
-            return this._objectLink;
-        }
-
-        context.inputs.push(input);
-        input.value = this._value;
-        input.addEventListener(eventType, context.listener);
-
-        return this._objectLink;
+        })(this);
+        input.addEventListener(eventType, this._listener);
     }
 
-    PrimitiveLink.prototype.toText = function () {
+    WithValuePropagation.prototype.propagate = function () {
+        if (!this._handling) {
+            this._input.value = this._primLink._value;
+        }
+    }
 
+    WithValuePropagation.prototype._destroy = function () {
+        this._input.removeEventListener(this._eventType, this._listener);
+    }
+
+    PrimLink.prototype.toText = function () {
         const element = this._assertSelected();
-
-        const index = this._toTextElements.indexOf(element);
-
-        // The input of argument has been bound.
-        if (index >= 0) {
-            return this._objectLink;
+        const propagations = this._propagations;
+        for (let i = 0; i < propagations.length; i++) {
+            const propagation = propagations[i];
+            // We don't create ToTextPropagation twice that has same element.
+            if (propagation.constructor === ToTextPropagation && propagation._element === element) {
+                propagation.propagate();
+                return this._parentLink;
+            }
         }
 
-        this._toTextElements.push(element);
-        element.textContent = this._value;
-
-        return this._objectLink;
+        const propagation = new ToTextPropagation(this, element);
+        propagation.propagate();
+        propagations.push(propagation);
+        return this._parentLink;
     }
 
-    PrimitiveLink.prototype.toSrc = function () {
+    const ToTextPropagation = /** @lends ToTextPropagation */ function ToTextPropagation(primLink, element) {
+        this._primLink = primLink;
+        this._element = element;
+    }
+
+    ToTextPropagation.prototype.propagate = function () {
+        this._element.textContent = this._primLink._value;
+    }
+
+    PrimLink.prototype.toSrc = function () {
         return this.toAttr("src");
     }
 
-    PrimitiveLink.prototype.toHref = function () {
+    PrimLink.prototype.toHref = function () {
         return this.toAttr("href");
     }
 
-    PrimitiveLink.prototype.toAttr = function (attrName) {
-
+    PrimLink.prototype.toAttr = function (attrName) {
         const element = this._assertSelected();
-
-        let context = this._toAttrContexts[attrName];
-        if (isNullOrUndefined(context)) {
-            context = {
-                attrName: attrName,
-                elements: []
+        const propagations = this._propagations;
+        for (let i = 0; i < propagations.length; i++) {
+            const propagation = propagations[i];
+            // We don't create ToAttrPropagation twice that has same element and attrName.
+            if (propagation.constructor === ToAttrPropagation
+                && propagation._element === element
+                && propagation._attrName === attrName) {
+                propagation.propagate();
+                return this._parentLink;
             }
-            this._toAttrContexts[attrName] = context;
         }
 
-        const index = context.elements.indexOf(element);
-
-        // The input of argument has been bound.
-        if (index >= 0) {
-            return;
-        }
-
-        context.elements.push(element);
-        element.setAttribute(attrName, this._value);
-
-        return this._objectLink;
+        const propagation = new ToAttrPropagation(this, element, attrName);
+        propagation.propagate();
+        propagations.push(propagation);
+        return this._parentLink;
     };
 
-    PrimitiveLink.prototype.toClass = function () {
+    const ToAttrPropagation = /** @lends ToAttrPropagation */ function ToAttrPropagation(primLink, element, attrName) {
+        this._primLink = primLink;
+        this._element = element;
+        this._attrName = attrName;
+    }
 
+    ToAttrPropagation.prototype.propagate = function () {
+        this._element.setAttribute(this._attrName, this._primLink._value);
+    }
+
+    PrimLink.prototype.toClass = function () {
         const element = this._assertSelected();
-
-        const index = this._toClassElements.indexOf(element);
-
-        // The input of argument has been bound.
-        if (index >= 0) {
-            return;
+        const propagations = this._propagations;
+        for (let i = 0; i < propagations.length; i++) {
+            const propagation = propagations[i];
+            // We don't create ToClassPropagation twice that has same element.
+            if (propagation.constructor === ToClassPropagation
+                && propagation._element === element) {
+                propagation.propagate();
+                return this._parentLink;
+            }
         }
 
-        this._toClassElements.push(element);
-        if (!isEmptyString(this._value)) {
-            element.classList.add(this._value);
-        }
-
-        return this._objectLink;
+        const propagation = new ToClassPropagation(this, element);
+        propagation.propagate();
+        propagations.push(propagation);
+        return this._parentLink;
     };
 
-    PrimitiveLink.prototype.turnClassOn = function (className) {
+    const ToClassPropagation = /** @lends ToClassPropagation */ function ToClassPropagation(primLink, element) {
+        this._primLink = primLink;
+        this._element = element;
+        this._previousValue = "";
+    }
+
+    ToClassPropagation.prototype.propagate = function () {
+        const classList = this._element.classList;
+        const previousValue = this._previousValue;
+        if (!isEmptyString(previousValue)) {
+            classList.remove(previousValue);
+        }
+        const value = this._primLink.getValue();
+        if (!isEmptyString(value)) {
+            classList.add(value);
+        }
+        this._previousValue = value;
+    }
+
+    PrimLink.prototype.turnClassOn = function (className) {
         return this.turnClass(className, true);
     }
 
-    PrimitiveLink.prototype.turnClassOff = function (className) {
+    PrimLink.prototype.turnClassOff = function (className) {
         return this.turnClass(className, false);
     }
 
-    PrimitiveLink.prototype.turnClass = function (className, onOrOff) {
-
+    PrimLink.prototype.turnClass = function (className, onOrOff) {
         const element = this._assertSelected();
-
-        const key = className + "_" + (onOrOff ? "on" : "off");
-
-        let context = this._turnClassContexts[key];
-        if (isNullOrUndefined(context)) {
-            context = {
-                className: className,
-                onOrOff: onOrOff,
-                elements: []
+        const propagations = this._propagations;
+        for (let i = 0; i < propagations.length; i++) {
+            const propagation = propagations[i];
+            // We don't create TurnClassPropagation twice 
+            // that has same element, className and onOrOff.
+            if (propagation.constructor === TurnClassPropagation
+                && propagation._element === element
+                && propagation._className === className
+                && propagation._onOrOff === !!onOrOff) {
+                propagation.propagate();
+                return this._parentLink;
             }
-            this._turnClassContexts[key] = context;
         }
 
-        const index = context.elements.indexOf(element);
-
-        // The input of argument has been bound.
-        if (index >= 0) {
-            return this._objectLink;
-        }
-
-        context.elements.push(element);
-        const on = context.onOrOff ? this._value : !this._value;
-        if (on) {
-            element.classList.add(context.className);
-        } else {
-            element.classList.remove(context.className);
-        }
-
-        return this._objectLink;
+        const propagation = new TurnClassPropagation(this, element, className, onOrOff);
+        propagation.propagate();
+        propagations.push(propagation);
+        return this._parentLink;
     };
 
-    PrimitiveLink.prototype.selectRule = function (rule) {
-        const rules = [];
+    const TurnClassPropagation = /** @lends TurnClassPropagation */ function TurnClassPropagation(primLink, element, className, onOrOff) {
+        this._primLink = primLink;
+        this._element = element;
+        this._className = className;
+        this._onOrOff = !!onOrOff;
+    }
+
+    TurnClassPropagation.prototype.propagate = function () {
+        const value = this._primLink.getValue();
+        const on = this._onOrOff ? value : !value;
+        if (on) {
+            this._element.classList.add(this._className);
+        } else {
+            this._element.classList.remove(this._className);
+        }
+    }
+
+    PrimLink.prototype._assertSelected = function () {
+
+        const selected = this._selected;
+
+        if (!isElementNode(selected)) {
+            throw Error("No ElementNode was selected.");
+        }
+
+        return selected;
+    };
+
+    PrimLink.prototype.selectRule = function (rule) {
 
         if (rule.constructor !== CSSStyleRule) {
             throw Error("The argument rule was not CSSStyleRule.");
@@ -913,161 +671,96 @@
             throw Error("The CSSRule type was not STYLE_RULE.");
         }
 
-        rules.push(rule);
-        this._rules = rules;
+        this._rule = rule;
 
         return this;
     };
 
-    PrimitiveLink.prototype.toStyleOf = function (styleName) {
-
-        const rules = this._assertRulesAreSelected();
-        const rns = this._toStyleOfRuleAndStyleNames;
-        const newRns = [];
-
-        for (let i = 0; i < rules.length; ++i) {
-            const rule = rules[i];
-            let found = false;
-            for (let j = 0; j < rns.length; ++j) {
-                const rn = rns[j];
-                if (rn.rule === rule && rn.styleName === styleName) {
-                    found = true;
-                    continue;
-                }
-            }
-            if (!found) {
-                newRns.push({
-                    rule: rule,
-                    styleName: styleName
-                });
+    //TODO Change method name
+    PrimLink.prototype.toStyleOf = function (styleName) {
+        const rule = this._assertRuleAreSelected();
+        const propagations = this._propagations;
+        for (let i = 0; i < propagations.length; i++) {
+            const propagation = propagations[i];
+            // We don't create ToStyleOfPropagation twice 
+            // that has same rule and styleName.
+            if (propagation.constructor === ToStyleOfPropagation
+                && propagation._rule === rule
+                && propagation._styleName === styleName) {
+                propagation.propagate();
+                return this._parentLink;
             }
         }
 
-        Array.prototype.push.apply(rns, newRns);
-
-        for (let i = 0; i < rns.length; ++i) {
-            const rn = rns[i];
-            rn.rule.style[rn.styleName] = this._value;
-        }
-
-        return this._objectLink;
+        const propagation = new ToStyleOfPropagation(this, rule, styleName);
+        propagation.propagate();
+        propagations.push(propagation);
+        return this._parentLink;
     }
 
-    PrimitiveLink.prototype._assertRulesAreSelected = function () {
-
-        const rules = this._rules;
-
-        if (isNullOrUndefined(rules)) {
-            throw Error("No CSSStyleRules were selected.");
+    PrimLink.prototype._assertRuleAreSelected = function () {
+        const rule = this._rule;
+        if (isNullOrUndefined(rule)) {
+            throw Error("No CSSStyleRule were selected.");
         }
-
-        return rules;
+        return rule;
     };
 
-    /**
-     * It propergates value to among the inputs and related object property.
+    const ToStyleOfPropagation = /** @lends ToStyleOfPropagation */ function ToStyleOfPropagation(primLink, rule, styleName) {
+        this._primLink = primLink;
+        this._rule = rule;
+        this._styleName = styleName;
+    }
+
+    ToStyleOfPropagation.prototype.propagate = function () {
+        this._rule.style[this._styleName] = this._primLink.getValue();
+    }
+
+    PrimLink.prototype._propagate = function () {
+        for (let i = 0; i < this._propagations.length; i++) {
+            this._propagations[i].propagate();
+        }
+    }
+
+    PrimLink.prototype._destroy = function () {
+        const propagations = this._propagations;
+        for (let i = 0; i < propagations.length; i++) {
+            const propagation = propagations[i];
+            if (propagation._destroy) {
+                propagation._destroy();
+            }
+        }
+    };
+
+    function createLink(parentLink, value) {
+        let link;
+
+        if (isNullOrUndefined(value) || isPrimitive(value)) {
+            link = new PrimLink(parentLink, value);
+        }
+        else if (isObject(value)) {
+            link = new ObjectLink(parentLink, value);
+        }
+        else if (isArray(value)) {
+            link = new ArrayLink(parentLink, value);
+        }
+        else {
+            throw Error("The type of value is not supported by ObjectLink");
+        }
+
+        return link;
+    }
+
+    /** 
+     * Create a new ObjectLink
+     * 
+     * @function    distlink
+     * @param       {object}    object  It is to be an ObjectLink
+     * @returns     {ObjectLink}        Created ObjectLink
      */
-    PrimitiveLink.prototype._propagate = function (source, value) {
-
-        const previousValue = this._previousValue;
-
-        if (source !== this) {
-
-            if (isNullOrUndefined(this._value)) {
-                this._previousValue = "";
-            } else {
-                this._previousValue = "" + this._value;
-            }
-
-            this._value = value;
-        }
-
-        for (let eventType in this._listenerContexts) {
-            const context = this._listenerContexts[eventType];
-            const inputs = context.inputs;
-            for (let i = 0; i < inputs.length; ++i) {
-                const input = inputs[i];
-                if (input === source) {
-                    continue;
-                }
-                input.value = value;
-            }
-        }
-
-        for (let i = 0; i < this._toTextElements.length; ++i) {
-            const element = this._toTextElements[i];
-            if (element === source) {
-                continue;
-            }
-            element.textContent = value;
-        }
-
-        for (let attrName in this._toAttrContexts) {
-            const context = this._toAttrContexts[attrName];
-            const elements = context.elements;
-            for (let i = 0; i < elements.length; ++i) {
-                const element = elements[i];
-                if (element === source) {
-                    continue;
-                }
-                element.setAttribute(attrName, value);
-            }
-        }
-
-        for (let i = 0; i < this._toClassElements.length; ++i) {
-            const element = this._toClassElements[i];
-            if (element === source) {
-                continue;
-            }
-            const classList = element.classList;
-            if (!isEmptyString(previousValue)) {
-                classList.remove(previousValue);
-            }
-            if (!isEmptyString(value)) {
-                classList.add(value);
-            }
-        }
-
-        for (let key in this._turnClassContexts) {
-            const context = this._turnClassContexts[key];
-            const elements = context.elements;
-            for (let i = 0; i < elements.length; ++i) {
-                const element = elements[i];
-                if (element === source) {
-                    continue;
-                }
-                const on = context.onOrOff ? value : !value;
-                if (on) {
-                    element.classList.add(context.className);
-                } else {
-                    element.classList.remove(context.className);
-                }
-            }
-        }
-
-        const rns = this._toStyleOfRuleAndStyleNames;
-        for (let i = 0; i < rns.length; ++i) {
-            const rn = rns[i];
-            rn.rule.style[rn.styleName] = this._value;
-        }
-
-    } // End of _propagate
-
-    PrimitiveLink.prototype._destroy = function () {
-
-        const eventTypes = Object.keys(this._listenerContexts);
-        for (let i = 0; i < eventTypes.length; ++i) {
-            const eventType = eventTypes[i];
-            const context = this._listenerContexts[eventType];
-            const inputs = context.inputs;
-            for (let j = 0; j < inputs.length; ++j) {
-                const input = inputs[j];
-                input.removeEventListener(eventType, context.listener);
-            }
-        }
-
-        return this;
-    };
+    const distlink = /** @lends distlink  */ function distlink(object) {
+        return createLink(null, object);
+    }
 
     return distlink;
 });

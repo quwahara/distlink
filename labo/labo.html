@@ -13,32 +13,46 @@
 
 <body>
     <div>
-        <div class="text"></div>
+        <div class="text debug"></div>
         <div class="array">
             <div>
                 <span class="name"></span>
                 <span class="value"></span>
             </div>
         </div>
+        <div>
+            <input type="text" name="text">
+        </div>
+        <div>
+            <a class="to-attr">to-attr</a>
+        </div>
     </div>
     <script>
         const data = {
-            text: "text",
+            text: "lightblue",
             array: [
                 { name: "item1", value: "value1" },
                 { name: "item2", value: "value2" },
                 { name: "item3", value: "value3" },
-            ]
+            ],
+            aClas: "a-class",
+            flip: "on",
         };
         distlink(data)
-            // .text.select(".text").toText()
+            .text.select("[name='text']").withValue()
+            .text.select(".text").toText()
+            .text.selectRule(document.styleSheets[1].cssRules[2]).toStyleOf("background-color")
             .array.select(".array").each(function (issue, childElement) {
                 console.log(arguments);
                 issue
                     .name.select(".name").toText()
                     .value.select(".value").toText()
                     ;
-            });
+            })
+            .text.select(".to-attr").toHref()
+            .aClas.select(".text").toClass()
+            .flip.select(".text").turnClassOn("on")
+            ;
     </script>
 </body>
 
