@@ -26,6 +26,7 @@
         <div>
             <a class="to-attr">to-attr</a>
         </div>
+        <div class="html"></div>
     </div>
     <script>
         const data = {
@@ -37,6 +38,7 @@
             ],
             aClas: "a-class",
             flip: "on",
+            html: "<div>Div tag</div>",
         };
         distlink(data)
             .text.select("[name='text']").withValue()
@@ -52,6 +54,7 @@
             .text.select(".to-attr").toHref()
             .aClas.select(".text").toClass()
             .flip.select(".text").turnClassOn("on")
+            .html.select(".html").toHtml()
             ;
     </script>
 </body>

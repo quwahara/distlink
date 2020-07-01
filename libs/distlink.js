@@ -527,6 +527,33 @@
         this._element.textContent = this._primLink._value;
     }
 
+    PrimLink.prototype.toHtml = function () {
+        const element = this._assertSelected();
+        const propagations = this._propagations;
+        for (let i = 0; i < propagations.length; i++) {
+            const propagation = propagations[i];
+            // We don't create ToHtmlPropagation twice that has same element.
+            if (propagation.constructor === ToHtmlPropagation && propagation._element === element) {
+                propagation.propagate();
+                return this._parentLink;
+            }
+        }
+
+        const propagation = new ToHtmlPropagation(this, element);
+        propagation.propagate();
+        propagations.push(propagation);
+        return this._parentLink;
+    }
+
+    const ToHtmlPropagation = /** @lends ToHtmlPropagation */ function ToHtmlPropagation(primLink, element) {
+        this._primLink = primLink;
+        this._element = element;
+    }
+
+    ToHtmlPropagation.prototype.propagate = function () {
+        this._element.innerHTML = this._primLink._value;
+    }
+
     PrimLink.prototype.toSrc = function () {
         return this.toAttr("src");
     }
