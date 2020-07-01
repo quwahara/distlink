@@ -42,8 +42,13 @@
         };
         distlink(data)
             .text.select("[name='text']").withValue()
-            .text.select(".text").toText()
-            .text.selectRule(document.styleSheets[1].cssRules[2]).toStyleOf("background-color")
+            .text.select(".text").toText().addFilter(function (value) {
+                return "*** " + value + " ***";
+            })
+            .text.selectRule(document.styleSheets[1].cssRules[2]).toStyleOf("background-color").addFilter(function (value) {
+                console.log("toStyleOf filter")
+                return value;
+            })
             .array.select(".array").each(function (issue, childElement) {
                 console.log(arguments);
                 issue
@@ -51,10 +56,19 @@
                     .value.select(".value").toText()
                     ;
             })
-            .text.select(".to-attr").toHref()
-            .aClas.select(".text").toClass()
-            .flip.select(".text").turnClassOn("on")
-            .html.select(".html").toHtml()
+            .text.select(".to-attr").toHref().addFilter(function (value) {
+                return "http://www." + value + ".com";
+            })
+            .aClas.select(".text").toClass().addFilter(function (value) {
+                return value + "-xl";
+            })
+            .flip.select(".text").turnClassOn("on").addFilter(function (value) {
+                console.log("trunClassOn filter")
+                return value;
+            })
+            .html.select(".html").toHtml().addFilter(function (value) {
+                return "<div>xxx" + value + "yyy</div>";
+            })
             ;
     </script>
 </body>

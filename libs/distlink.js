@@ -80,6 +80,7 @@
         this._selected = null;
         this._selectedRule = null;
         this._props = {};
+        this._lastLink = null;
 
         if (parentLink == null) {
             // It's OK.
@@ -137,11 +138,30 @@
             Object.defineProperty(objectLink, key, {
                 enumerable: true,
                 get: function () {
+                    objectLink._lastLink = link;
                     return link;
                 },
             });
         })(objectLink._object, link);
     }
+
+    ObjectLink.prototype.addFilter = function (filter) {
+        if (!isFunction(filter)) {
+            throw Error("The filter requires function.");
+        }
+
+        if (!this._lastLink) {
+            throw Error("No previous link.");
+        }
+
+        if (!this._lastLink._lastPropagation) {
+            throw Error("No previous propagation.");
+        }
+
+        this._lastLink._lastPropagation.addFilter(filter);
+
+        return this;
+    };
 
     const ArrayLink = /** @lends ArrayLink */ function ArrayLink(parentLink, array) {
         this._parentLink = parentLink;
@@ -291,6 +311,7 @@
         this._firstElementChild = element.firstElementChild ? element.firstElementChild.cloneNode(true) : null;
         removeChildren(this._element);
         this._previousEachItemPropagations = [];
+        this._filters = null;
     }
 
     EachPropagation.prototype.propagate = function () {
@@ -406,6 +427,7 @@
         this._previousValue = undefined;
         this._value = value;
         this._propagations = [];
+        this._lastPropagation = null;
     }
 
     PrimLink.prototype.getValue = function () {
@@ -465,6 +487,7 @@
                 && propagation._eventType === eventType
             ) {
                 propagation.propagate();
+                this._lastPropagation = propagation;
                 return this._parentLink;
             }
         }
@@ -472,6 +495,7 @@
         const propagation = new WithValuePropagation(this, input, eventType);
         propagation.propagate();
         propagations.push(propagation);
+        this._lastPropagation = propagation;
         return this._parentLink;
     }
 
@@ -488,6 +512,15 @@
             };
         })(this);
         input.addEventListener(eventType, this._listener);
+        this._filters = null;
+    }
+
+    WithValuePropagation.prototype.addFilter = function (filter) {
+        if (!this._filters) {
+            this._filters = [];
+        }
+        this._filters.push(filter);
+        this.propagate();
     }
 
     WithValuePropagation.prototype.propagate = function () {
@@ -508,6 +541,7 @@
             // We don't create ToTextPropagation twice that has same element.
             if (propagation.constructor === ToTextPropagation && propagation._element === element) {
                 propagation.propagate();
+                this._lastPropagation = propagation;
                 return this._parentLink;
             }
         }
@@ -515,16 +549,33 @@
         const propagation = new ToTextPropagation(this, element);
         propagation.propagate();
         propagations.push(propagation);
+        this._lastPropagation = propagation;
         return this._parentLink;
     }
 
     const ToTextPropagation = /** @lends ToTextPropagation */ function ToTextPropagation(primLink, element) {
         this._primLink = primLink;
         this._element = element;
+        this._filters = null;
+    }
+
+    ToTextPropagation.prototype.addFilter = function (filter) {
+        if (!this._filters) {
+            this._filters = [];
+        }
+        this._filters.push(filter);
+        this.propagate();
     }
 
     ToTextPropagation.prototype.propagate = function () {
-        this._element.textContent = this._primLink._value;
+        let value = this._primLink._value;
+        if (this._filters) {
+            for (let i = 0; i < this._filters.length; i++) {
+                const filter = this._filters[i];
+                value = filter(value);
+            }
+        }
+        this._element.textContent = value;
     }
 
     PrimLink.prototype.toHtml = function () {
@@ -535,6 +586,7 @@
             // We don't create ToHtmlPropagation twice that has same element.
             if (propagation.constructor === ToHtmlPropagation && propagation._element === element) {
                 propagation.propagate();
+                this._lastPropagation = propagation;
                 return this._parentLink;
             }
         }
@@ -542,16 +594,33 @@
         const propagation = new ToHtmlPropagation(this, element);
         propagation.propagate();
         propagations.push(propagation);
+        this._lastPropagation = propagation;
         return this._parentLink;
     }
 
     const ToHtmlPropagation = /** @lends ToHtmlPropagation */ function ToHtmlPropagation(primLink, element) {
         this._primLink = primLink;
         this._element = element;
+        this._filters = null;
+    }
+
+    ToHtmlPropagation.prototype.addFilter = function (filter) {
+        if (!this._filters) {
+            this._filters = [];
+        }
+        this._filters.push(filter);
+        this.propagate();
     }
 
     ToHtmlPropagation.prototype.propagate = function () {
-        this._element.innerHTML = this._primLink._value;
+        let value = this._primLink._value;
+        if (this._filters) {
+            for (let i = 0; i < this._filters.length; i++) {
+                const filter = this._filters[i];
+                value = filter(value);
+            }
+        }
+        this._element.innerHTML = value;
     }
 
     PrimLink.prototype.toSrc = function () {
@@ -572,6 +641,7 @@
                 && propagation._element === element
                 && propagation._attrName === attrName) {
                 propagation.propagate();
+                this._lastPropagation = propagation;
                 return this._parentLink;
             }
         }
@@ -579,6 +649,7 @@
         const propagation = new ToAttrPropagation(this, element, attrName);
         propagation.propagate();
         propagations.push(propagation);
+        this._lastPropagation = propagation;
         return this._parentLink;
     };
 
@@ -586,10 +657,26 @@
         this._primLink = primLink;
         this._element = element;
         this._attrName = attrName;
+        this._filters = null;
+    }
+
+    ToAttrPropagation.prototype.addFilter = function (filter) {
+        if (!this._filters) {
+            this._filters = [];
+        }
+        this._filters.push(filter);
+        this.propagate();
     }
 
     ToAttrPropagation.prototype.propagate = function () {
-        this._element.setAttribute(this._attrName, this._primLink._value);
+        let value = this._primLink._value;
+        if (this._filters) {
+            for (let i = 0; i < this._filters.length; i++) {
+                const filter = this._filters[i];
+                value = filter(value);
+            }
+        }
+        this._element.setAttribute(this._attrName, value);
     }
 
     PrimLink.prototype.toClass = function () {
@@ -601,6 +688,7 @@
             if (propagation.constructor === ToClassPropagation
                 && propagation._element === element) {
                 propagation.propagate();
+                this._lastPropagation = propagation;
                 return this._parentLink;
             }
         }
@@ -608,6 +696,7 @@
         const propagation = new ToClassPropagation(this, element);
         propagation.propagate();
         propagations.push(propagation);
+        this._lastPropagation = propagation;
         return this._parentLink;
     };
 
@@ -615,6 +704,15 @@
         this._primLink = primLink;
         this._element = element;
         this._previousValue = "";
+        this._filters = null;
+    }
+
+    ToClassPropagation.prototype.addFilter = function (filter) {
+        if (!this._filters) {
+            this._filters = [];
+        }
+        this._filters.push(filter);
+        this.propagate();
     }
 
     ToClassPropagation.prototype.propagate = function () {
@@ -623,7 +721,13 @@
         if (!isEmptyString(previousValue)) {
             classList.remove(previousValue);
         }
-        const value = this._primLink.getValue();
+        let value = this._primLink._value;
+        if (this._filters) {
+            for (let i = 0; i < this._filters.length; i++) {
+                const filter = this._filters[i];
+                value = filter(value);
+            }
+        }
         if (!isEmptyString(value)) {
             classList.add(value);
         }
@@ -650,6 +754,7 @@
                 && propagation._className === className
                 && propagation._onOrOff === !!onOrOff) {
                 propagation.propagate();
+                this._lastPropagation = propagation;
                 return this._parentLink;
             }
         }
@@ -657,6 +762,7 @@
         const propagation = new TurnClassPropagation(this, element, className, onOrOff);
         propagation.propagate();
         propagations.push(propagation);
+        this._lastPropagation = propagation;
         return this._parentLink;
     };
 
@@ -665,10 +771,25 @@
         this._element = element;
         this._className = className;
         this._onOrOff = !!onOrOff;
+        this._filters = null;
+    }
+
+    TurnClassPropagation.prototype.addFilter = function (filter) {
+        if (!this._filters) {
+            this._filters = [];
+        }
+        this._filters.push(filter);
+        this.propagate();
     }
 
     TurnClassPropagation.prototype.propagate = function () {
-        const value = this._primLink.getValue();
+        let value = this._primLink._value;
+        if (this._filters) {
+            for (let i = 0; i < this._filters.length; i++) {
+                const filter = this._filters[i];
+                value = filter(value);
+            }
+        }
         const on = this._onOrOff ? value : !value;
         if (on) {
             this._element.classList.add(this._className);
@@ -715,6 +836,7 @@
                 && propagation._rule === rule
                 && propagation._styleName === styleName) {
                 propagation.propagate();
+                this._lastPropagation = propagation;
                 return this._parentLink;
             }
         }
@@ -722,6 +844,7 @@
         const propagation = new ToStyleOfPropagation(this, rule, styleName);
         propagation.propagate();
         propagations.push(propagation);
+        this._lastPropagation = propagation;
         return this._parentLink;
     }
 
@@ -737,10 +860,26 @@
         this._primLink = primLink;
         this._rule = rule;
         this._styleName = styleName;
+        this._filters = null;
+    }
+
+    ToStyleOfPropagation.prototype.addFilter = function (filter) {
+        if (!this._filters) {
+            this._filters = [];
+        }
+        this._filters.push(filter);
+        this.propagate();
     }
 
     ToStyleOfPropagation.prototype.propagate = function () {
-        this._rule.style[this._styleName] = this._primLink.getValue();
+        let value = this._primLink._value;
+        if (this._filters) {
+            for (let i = 0; i < this._filters.length; i++) {
+                const filter = this._filters[i];
+                value = filter(value);
+            }
+        }
+        this._rule.style[this._styleName] = value;
     }
 
     PrimLink.prototype._propagate = function () {
